@@ -1,33 +1,31 @@
-# Import necessary modules
-from time import sleep
-import time
-import requests
+from time import sleep, strftime, localtime
 import pyautogui
+import requests
 
-# Get the current time for the file name
-current_time = time.strftime("%Y-%m-%d-%H", time.localtime(time.time()))
-screen_image_path = 'D:/GitHub/python-code/image/' + current_time + '.png'  # File path for the screen capture
+# Configuration
+SCREENSHOT_PATH = ''
+SLEEP_INTERVAL_SECONDS = 3600  # 1 hour
+LINE_NOTIFY_TOKEN = ''  # Fill in your LINE Notify Token
+NOTIFICATION_MESSAGE = 'Success'
 
-# Function: Take a screenshot
-def screenshot(image):
-    my_screenshot = pyautogui.screenshot()  # Capture the screen using PyAutoGUI
-    my_screenshot.save(image)  # Save the screenshot to the specified path
-    return image
+def take_screenshot(image_path):
+    screenshot = pyautogui.screenshot()
+    screenshot.save(image_path)
 
-# Function: Send a notification using LINE Notify
-def line_notify_message(image):
-    token = ''  # Please fill in your LINE Notify Token here
-
-    headers = {"Authorization": "Bearer " + token}
-    params = {'message': 'Success'}  # Notification message
-    files = {'imageFile': open(image, 'rb')}  # Image file to be sent
-
-    r = requests.post("https://notify-api.line.me/api/notify", headers=headers, params=params, files=files)  # Send the notification using a POST request
-    return r.status_code  # Return the HTTP status code
+def send_line_notify(image_path):
+    headers = {"Authorization": "Bearer " + LINE_NOTIFY_TOKEN}
+    params = {'message': NOTIFICATION_MESSAGE}
+    files = {'imageFile': open(image_path, 'rb')}
+    response = requests.post("https://notify-api.line.me/api/notify", headers=headers, params=params, files=files)
+    return response.status_code
 
 if __name__ == '__main__':
     while True:
-        image_save = screenshot(screen_image_path)  # Capture the screen and save it
-        line_notify_message(image_save)  # Send a LINE notification
+        current_time = strftime("%Y-%m-%d-%H", localtime())
+        image_save = SCREENSHOT_PATH + current_time + '.png'
+        
+        take_screenshot(image_save)
+        send_line_notify(image_save)
+        
         print('Notification sent successfully')
-        sleep(3600)  # Run the program every 3600 seconds (1 hour)
+        sleep(SLEEP_INTERVAL_SECONDS)
