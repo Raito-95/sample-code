@@ -1,222 +1,179 @@
 import serial
 import serial.tools.list_ports
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plot
 import tkinter as tk
+from tkinter import ttk
+import threading
 import datetime
 import time
 from collections import deque
-
-# Initial data recording time and time threshold
+import logging
+import queue
+# Set up logging
+logging.basicConfig(filename='serial_gui.log', level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 first_data_time = datetime.datetime.now()
-time_threshold = datetime.timedelta(seconds=300)
-
-# Initial filename
 filename = f"data_{first_data_time.strftime('%Y%m%d%H%M%S')}.txt"
-
-# Define an exponential smoothing function
-def exponential_smoothing(data, alpha=0.2):
-    smoothed_data = [data[0]]
-    for i in range(1, len(data)):
-        smoothed_value = alpha * data[i] + (1 - alpha) * smoothed_data[i-1]
-        smoothed_data.append(smoothed_value)
-    return smoothed_data
-
-# Save data to a text file
 def save_data_to_txt(data):
-    global filename  # Make filename a global variable
+    global filename
     with open(filename, 'a') as file:
         file.write(data + '\n')
-
-# Serial settings class
 class SerialSettings:
     def __init__(self, master):
-        # Create the main window
+        self.data_queue = queue.Queue()
         self.master = master
-        self.master.title('GUI')
+        self.master.title('Serial Data GUI')
         self.master.resizable(False, False)
         self.is_running = False
-
-        # Create the serial port selection label and dropdown
+        self.serial_connection = None
+        # Configuration for data identifiers
+        self.data_identifiers = {
+            'RightTemperature': 0,
+            'LeftTemperature': 1
+        }
+        style = ttk.Style()
+        style.theme_use('default')  # You could also use 'clam' or 'alt'
+        style.configure('TButton', background='#E1E1E1', foreground='black')
+        style.configure('TLabel', background='#E1E1E1', foreground='black')
+        style.configure('TFrame', background='#E1E1E1')
+        style.configure('TEntry', background='white', foreground='black')
         tk.Label(self.master, text="Port:").grid(row=0, column=0, sticky="E", pady=(10, 0))
         self.port_var = tk.StringVar()
-        self.port_dropdown = tk.OptionMenu(self.master, self.port_var, *self.get_available_ports())
+        self.port_dropdown = ttk.OptionMenu(self.master, self.port_var, *self.get_available_ports())
         self.port_dropdown.grid(row=0, column=1, sticky="N", pady=(10, 0))
-
-        # Create the baud rate label and dropdown
         tk.Label(self.master, text="Baud Rate:").grid(row=1, column=0, sticky="E", pady=(10, 0))
         self.baud_var = tk.StringVar()
-        self.baud_dropdown = tk.OptionMenu(self.master, self.baud_var, "115200")
+        self.baud_dropdown = ttk.OptionMenu(self.master, self.baud_var, "9600", "19200", "38400", "57600", "115200")
         self.baud_dropdown.grid(row=1, column=1, sticky="N", pady=(10, 0))
-
-        # Create the "Start" button
-        self.start_button = tk.Button(self.master, text="Start", command=self.ok_clicked)
+        self.start_button = ttk.Button(self.master, text="Start", command=self.start_clicked)
         self.start_button.grid(row=0, column=2, sticky="N", pady=(10, 0))
-
-        # Create the "Stop" button
-        self.stop_button = tk.Button(self.master, text="Stop", command=self.stop_clicked)
+        self.stop_button = ttk.Button(self.master, text="Stop", command=self.stop_clicked, state=tk.DISABLED)
         self.stop_button.grid(row=1, column=2, sticky="N", pady=(10, 0))
-
-        # Create the status label
+        self.exit_button = ttk.Button(self.master, text="Exit", command=self.exit_clicked)
+        self.exit_button.grid(row=2, column=2, sticky="N", pady=(10, 0))
         self.status_label = tk.Label(self.master, text="Status: Not connected.")
-        self.status_label.grid(row=2, column=0, columnspan=3, sticky="N", pady=(10, 0))
-
-        self.frame_count = 0
-
-    # Get all available serial ports
+        self.status_label.grid(row=3, column=0, columnspan=3, sticky="N", pady=(10, 0))
     def get_available_ports(self):
         ports = serial.tools.list_ports.comports()
-        port_list = []
-
-        for port, desc, hwid in sorted(ports):
-            if "USB" in desc or "COM" in desc:
-                port_list.append(port)
-
-        return port_list
-
-    # "Start" button click event
-    def ok_clicked(self):
-        # Get the selected serial port and baud rate
+        return [port.device for port in ports]
+    def start_clicked(self):
         selected_port = self.port_var.get()
-        selected_baud = int(self.baud_var.get())
-
-        # Handle the selected serial port and baud rate
-        print(f"Selected port: {selected_port}, baud rate: {selected_baud}")
-
-        COM_PORT = str(selected_port)
-        BAUD_RATES = str(selected_baud)
-        ser = serial.Serial(COM_PORT, BAUD_RATES)
-
-        buff = [deque([], maxlen=max_length) for _ in range(3)]
-
-        self.is_running = True
-
-        # Update the status label to connected
-        self.status_label["text"] = f"Status: Connected to {selected_port}"
-
-        try:
-            plt.ion()
-            while self.is_running:
-                current_time = datetime.datetime.now()
-                time_difference = current_time - first_data_time
-                print(f'time: {time_threshold - time_difference}')
-                if time_difference > time_threshold:
-                    self.is_running = False
-                    print('Finish')
-                self.process_data(ser, buff)
-                self.draw_plots(buff)
-
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            plt.ioff()
-
-        # Close the plot window
-        plt.close()
-
-        # Close the serial port
-        ser.close()
-
-        # Update the status label
-        self.status_label["text"] = f"Status: Disconnected {selected_port}"
-
-        # Close the window
-        self.master.destroy()
-
-    # "Stop" button click event
+        selected_baud = self.baud_var.get()
+        self.connect_serial(selected_port, selected_baud)
+        if self.serial_connection and self.serial_connection.is_open:
+            self.is_running = True
+            self.start_button.config(state=tk.DISABLED)
+            self.stop_button.config(state=tk.NORMAL)
+            self.read_data_continuously()
     def stop_clicked(self):
-        # Clear the running flag
         self.is_running = False
-
-    # Process serial data
-    def process_data(self, ser, buff):
+        self.start_button.config(state=tk.NORMAL)
+        self.stop_button.config(state=tk.DISABLED)
+        if self.serial_connection:
+            self.serial_connection.close()
+            self.status_label["text"] = "Status: Disconnected"
+    def exit_clicked(self):
+        # Signal the thread to stop
+        self.is_running = False
+        time.sleep(0.1)  # Give a little time for the thread to respond to the stop signal
+        # Close the serial connection if it's open
+        if self.serial_connection and self.serial_connection.is_open:
+            self.serial_connection.close()
+        # Turn off the interactive mode of matplotlib
+        plot.ioff()
+        # Destroy the tkinter window to close the application
+        self.master.destroy()
+    def connect_serial(self, port, baud_rate):
         try:
-            data_raw = ser.readline()
+            self.serial_connection = serial.Serial(port, baud_rate, timeout=1)
+            self.status_label["text"] = f"Status: Connected to {port}"
+            logging.info(f"Connected to {port} with baud rate {baud_rate}")
+        except serial.SerialException as e:
+            self.status_label["text"] = f"Connection failed: {e}"
+            logging.error(f"Connection failed: {e}")
+    def process_data(self, data_raw):
+        try:
+            # Decode the raw data received from the serial port
             data = data_raw.decode()
+            # Split the data by line breaks and process each value
             values = data.split("\n")
             for value in values:
-                if value.startswith("rightOrigVolt1"):
-                    rightOrigVolt1 = float(value.split(":")[1].strip())
-                    buff[0].append(rightOrigVolt1)
-                elif value.startswith("rightOrigVolt2"):
-                    rightOrigVolt2 = float(value.split(":")[1].strip())
-                    buff[1].append(rightOrigVolt2)
-                elif value.startswith("Panel temperature"):
-                    panelTemperature = float(value.split(":")[1].strip())
-                    buff[2].append(panelTemperature)
-        except serial.SerialException:
-            print("Serial port reading failed, attempting to reconnect.")
-            time.sleep(1)
-        except ValueError:
-            print("Data format error, will try to correct it.")
-
-    # Draw data plots
-    def draw_plots(self, buff):
-        plt.clf()
-
-        # Draw plots for rightOrigVolt1 and rightOrigVolt2
-        plt.subplot(2, 1, 1)
-        buff_arr1 = np.array(list(buff[0]))
-        buff_arr2 = np.array(list(buff[1]))
-        plt.plot(buff_arr1, color='y', label='Volt1')
-        plt.plot(buff_arr2, color='m', label='Volt2')
-        plt.title('Voltage')
-        plt.xlabel('Signal')
-        plt.ylabel('Voltage')
-        plt.grid(True)
-        plt.ylim(0.9, 2.2)
-        plt.legend(loc='upper left')
-
-        # Annotate the latest values for Volt1 and Volt2
-        if len(buff[0]) > 1 and len(buff[1]) > 1:
-            latest_value0 = buff_arr1[-1]
-            latest_value1 = buff_arr2[-1]
-            plt.annotate(f'{latest_value0:.3f}', (len(buff_arr1)-1, latest_value0),
-                        xytext=(-10, 10), textcoords='offset points', color='y')
-            plt.annotate(f'{latest_value1:.3f}', (len(buff_arr2)-1, latest_value1),
-                        xytext=(-10, 10), textcoords='offset points', color='m')
-
-        # Smooth the data in buff[2]
-        if len(buff[2]) > 0:
-            smoothed_buff = exponential_smoothing(buff[2])
-        else:
-            smoothed_buff = buff[2]
-
-        # Draw original and smoothed data
-        plt.subplot(2, 1, 2)
-        buff_arr3 = np.array(buff[2])
-        smoothed_buff_arr = np.array(smoothed_buff)
-        plt.plot(smoothed_buff_arr, color='c', label='Smoothed')
-        plt.plot(buff_arr3, color='lightgray', linestyle='--', label='Original')
-        plt.title('Temperature')
-        plt.xlabel('Signal')
-        plt.ylabel('Temperature')
-        plt.grid(True)
-        plt.ylim(30, 110)
-        plt.legend(loc='upper left')
-
-        # Annotate the latest temperature value
-        if len(smoothed_buff) > 1:
-            latest_value2 = smoothed_buff_arr[-1]
-            plt.annotate(f'{latest_value2:.2f}', (len(smoothed_buff_arr)-1, latest_value2),
-                        xytext=(-10, 10), textcoords='offset points', color='c')
-            self.frame_count += 1
-            if self.frame_count % 5 == 0:
-                save_date = f'{latest_value2:.2f}'
-                save_data_to_txt(save_date)
-                self.frame_count = 0
-
-        plt.subplots_adjust(hspace=0.5)
-        plt.draw()
-        plt.pause(0.1)
-
-# Maximum data length
-max_length = 100
-
-# Create the main window
-root = tk.Tk()
-
-# Create a SerialSettings object
-serial_settings = SerialSettings(root)
-
-# Start the main event loop
-root.mainloop()
+                for identifier, index in self.data_identifiers.items():
+                    if value.startswith(identifier):
+                        temperature = float(value.split(":")[1].strip())
+                        self.buff[index].append(temperature)
+                        # Save data to file or other processing
+                        save_data_to_txt(value)
+        except ValueError as e:
+            print("Data format error, will try to correct it.", e)
+    def draw_plots(self):
+        plot.clf()
+        buff_arr1 = np.array(list(self.buff[0]))
+        buff_arr2 = np.array(list(self.buff[1]))
+        plot.plot(buff_arr1, color='red', label='Right')
+        plot.plot(buff_arr2, color='blue', label='Left')
+        plot.title('Temperature Data')
+        plot.xlabel('Time')
+        plot.ylabel('Temperature (°C)')
+        plot.legend(loc='upper left')
+        plot.grid(True)
+        plot.pause(0.1)
+    def read_data_continuously(self):
+        threading.Thread(target=self._read_data_thread, daemon=True).start()
+    def _read_data_thread(self):
+        self.buff = [deque(maxlen=100) for _ in range(len(self.data_identifiers))]
+        plot.ion()
+        while self.is_running:
+            if self.serial_connection and self.serial_connection.is_open:
+                try:
+                    data_raw = self.serial_connection.readline()
+                    if data_raw:
+                        self.process_data(data_raw)
+                        # Instead of drawing the plot here, put the data in a queue
+                        self.data_queue.put(self.buff)
+                except serial.SerialException as e:
+                    self.status_label["text"] = f"Lost connection: {e}. Attempting to reconnect..."
+                    logging.warning(f"Lost connection: {e}. Attempting to reconnect...")
+                    time.sleep(5)
+                    self.connect_serial(self.port_var.get(), self.baud_var.get())
+            else:
+                self.status_label["text"] = "Connection closed. Attempting to reconnect..."
+                logging.warning("Connection closed. Attempting to reconnect...")
+                time.sleep(5)
+                self.connect_serial(self.port_var.get(), self.baud_var.get())
+        plot.ioff()
+    def update_plot(self):
+        try:
+            # Get the latest data from the queue
+            data = self.data_queue.get_nowait()
+            plot.clf()
+            colors = ['red', 'blue']  # List of colors for the plots
+            for index, buff in enumerate(data):
+                buff_array = np.array(list(buff))
+                # Plot with the specified color and label
+                plot.plot(buff_array, color=colors[index], label=f'Data {index}')
+                # Annotate the latest data point
+                if len(buff_array) > 0:
+                    plot.annotate(f'{buff_array[-1]:.2f}',
+                                xy=(len(buff_array)-1, buff_array[-1]),
+                                textcoords="offset points",
+                                xytext=(0,10),
+                                ha='center', color=colors[index])
+            plot.title('Temperature Data')
+            plot.xlabel('Time')
+            plot.ylabel('Temperature (°C)')
+            plot.legend(loc='upper left')
+            plot.grid(True)
+            plot.draw()
+        except queue.Empty:
+            pass
+        # Schedule the next plot update
+        self.master.after(100, self.update_plot)
+def main():
+    root = tk.Tk()
+    app = SerialSettings(root)
+    # Start the periodic plot update
+    app.update_plot()
+    root.mainloop()
+if __name__ == "__main__":
+    main()
