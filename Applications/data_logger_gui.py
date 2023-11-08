@@ -104,6 +104,9 @@ class SerialGUI:
         self.port_dropdown = ttk.Combobox(connection_frame, textvariable=self.port_var, state="readonly")
         self.port_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
 
+        self.refresh_button = ttk.Button(connection_frame, text="Refresh Ports", command=self.update_ports)
+        self.refresh_button.pack(side=tk.LEFT, padx=5, pady=5)
+
         baud_label = ttk.Label(connection_frame, text="Baud Rate:")
         baud_label.pack(side=tk.LEFT, padx=5, pady=5)
         self.baud_var = tk.StringVar()
@@ -138,8 +141,15 @@ class SerialGUI:
         
         self.port_dropdown.bind("<<ComboboxSelected>>", self.on_port_selected)
         self.baud_dropdown.bind("<<ComboboxSelected>>", self.on_baud_selected)
-        
+
     def on_port_selected(self, event):
+        if self.after_id:
+            self.master.after_cancel(self.after_id)
+            self.after_id = None
+
+        if self.is_connected:
+            self.stop_clicked()
+
         self.update_port_selection()
 
     def on_baud_selected(self, event):
@@ -158,11 +168,13 @@ class SerialGUI:
             self.is_connected = False
 
     def update_ports_periodically(self):
+        current_selection = self.port_var.get()
         available_ports = self.serial_connection.get_available_ports()
         self.port_dropdown['values'] = available_ports
-        if available_ports:
+        if current_selection in available_ports:
+            self.port_dropdown.set(current_selection)
+        elif available_ports:
             self.port_dropdown.set(available_ports[0])
-        self.after_id = self.master.after(5000, self.update_ports_periodically)
 
     def update_ports(self):
         available_ports = self.serial_connection.get_available_ports()
@@ -174,20 +186,30 @@ class SerialGUI:
         self.is_running = True
         self.start_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.NORMAL)
+        self.port_dropdown.config(state=tk.DISABLED)
+        self.baud_dropdown.config(state=tk.DISABLED)
         self.serial_connection.connect(self.port_var.get(), self.baud_var.get())
         self.data_thread = threading.Thread(target=self.read_data_thread, daemon=True)
         self.data_thread.start()
         self.update_plot()
         self.status_var.set("Status: Connected to Serial Port")
         self.is_connected = True
+        if self.after_id:
+            self.master.after_cancel(self.after_id)
+            self.after_id = None
 
     def stop_clicked(self):
         self.is_running = False
         self.serial_connection.disconnect()
         self.stop_button.config(state=tk.DISABLED)
         self.start_button.config(state=tk.NORMAL)
+        self.port_dropdown.config(state=tk.NORMAL)
+        self.baud_dropdown.config(state=tk.NORMAL)
         self.status_var.set("Status: Not connected")
         self.is_connected = False
+        if self.after_id:
+            self.master.after_cancel(self.after_id)
+            self.after_id = None
 
     def exit_clicked(self):
         self.stop_clicked()
