@@ -3,21 +3,17 @@ import queue
 import re
 import serial
 import threading
+import tkinter as tk
 from collections import deque
 from tkinter import ttk
-import tkinter as tk
-
-import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import serial.tools.list_ports
 
-matplotlib.use('TkAgg')
-
 logging.basicConfig(filename='serial_gui.log', level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
-dict = {'RightTemperature': 0,
-        'LeftTemperature': 1}
+data_identifiers = {'RightTemperature': 0,
+                    'LeftTemperature': 1}
 
 class DataProcessor:
     def __init__(self, identifiers, save_filename):
@@ -36,12 +32,15 @@ class DataProcessor:
                         temperature = float(value.split(":")[1].strip())
                         self.buff[index].append(temperature)
                         self.save_data_to_txt(value)
-        except ValueError as e:
-            logging.error("Data format error: %s", e)
+        except Exception as e:
+            logging.error("Data processing error: %s", e)
 
     def save_data_to_txt(self, data):
-        with open(self.filename, 'a') as file:
-            file.write(data + '\n')
+        try:
+            with open(self.filename, 'a') as file:
+                file.write(data + '\n')
+        except Exception as e:
+            logging.error("Error while saving data to file: %s", e)
 
 class SerialConnection:
     def __init__(self):
@@ -56,23 +55,26 @@ class SerialConnection:
             self.serial_connection = serial.Serial(port, baud_rate, timeout=1)
             logging.info("Connected to %s with baud rate %s", port, baud_rate)
             return True
-        except serial.SerialException as e:
+        except Exception as e:
             logging.error("Connection failed: %s", e)
             return False
 
     def disconnect(self):
         if self.serial_connection and self.serial_connection.is_open:
-            self.serial_connection.close()
-            logging.info("Disconnected from the serial port")
+            try:
+                self.serial_connection.close()
+                logging.info("Disconnected from the serial port")
+            except Exception as e:
+                logging.error("Error while disconnecting: %s", e)
 
     def read_data(self):
         if self.serial_connection and self.serial_connection.is_open:
             try:
                 return self.serial_connection.readline()
-            except serial.SerialException as e:
+            except Exception as e:
                 logging.warning("Read data failed: %s", e)
                 self.disconnect()
-                return None
+        return None
 
 class SerialGUI:
     def __init__(self, root, processor, connection):
@@ -83,6 +85,7 @@ class SerialGUI:
         self.data_thread = None
         self.data_queue = queue.Queue()
         self.after_id = None
+        self.is_connected = False
         self.setup_gui()
 
     def setup_gui(self):
@@ -132,6 +135,27 @@ class SerialGUI:
         self.update_ports_periodically()
         self.update_ports()
         self.update_plot()
+        
+        self.port_dropdown.bind("<<ComboboxSelected>>", self.on_port_selected)
+        self.baud_dropdown.bind("<<ComboboxSelected>>", self.on_baud_selected)
+        
+    def on_port_selected(self, event):
+        self.update_port_selection()
+
+    def on_baud_selected(self, event):
+        self.update_baud_selection()
+
+    def update_port_selection(self):
+        if not self.is_running:
+            self.serial_connection.disconnect()
+            self.status_var.set("Status: Not connected")
+            self.is_connected = False
+
+    def update_baud_selection(self):
+        if not self.is_running:
+            self.serial_connection.disconnect()
+            self.status_var.set("Status: Not connected")
+            self.is_connected = False
 
     def update_ports_periodically(self):
         available_ports = self.serial_connection.get_available_ports()
@@ -155,6 +179,7 @@ class SerialGUI:
         self.data_thread.start()
         self.update_plot()
         self.status_var.set("Status: Connected to Serial Port")
+        self.is_connected = True
 
     def stop_clicked(self):
         self.is_running = False
@@ -162,6 +187,7 @@ class SerialGUI:
         self.stop_button.config(state=tk.DISABLED)
         self.start_button.config(state=tk.NORMAL)
         self.status_var.set("Status: Not connected")
+        self.is_connected = False
 
     def exit_clicked(self):
         self.stop_clicked()
@@ -205,8 +231,7 @@ class SerialGUI:
 
 def main():
     root = tk.Tk()
-    processor = DataProcessor(dict,
-                              "data.txt")
+    processor = DataProcessor(data_identifiers, "data.txt")
     connection = SerialConnection()
     SerialGUI(root, processor, connection)
     root.mainloop()
