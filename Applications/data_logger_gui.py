@@ -175,34 +175,43 @@ class SerialGUI:
         if available_ports:
             self.port_dropdown.set(available_ports[0])
             
-    def start_clicked(self):
-        self.is_running = True
-        self.start_button.config(state=tk.DISABLED)
-        self.stop_button.config(state=tk.NORMAL)
-        self.port_dropdown.config(state=tk.DISABLED)
-        self.baud_dropdown.config(state=tk.DISABLED)
-        self.serial_connection.connect(self.port_var.get(), self.baud_var.get())
-        self.data_thread = threading.Thread(target=self.read_data_thread, daemon=True)
-        self.data_thread.start()
-        self.update_plot()
-        self.status_var.set("Status: Connected to Serial Port")
-        self.is_connected = True
-        if self.after_id:
-            self.master.after_cancel(self.after_id)
-            self.after_id = None
-
     def stop_clicked(self):
         self.is_running = False
-        self.serial_connection.disconnect()
+        if self.serial_connection.serial_connection is not None:
+            self.serial_connection.disconnect()
         self.stop_button.config(state=tk.DISABLED)
         self.start_button.config(state=tk.NORMAL)
         self.port_dropdown.config(state=tk.NORMAL)
         self.baud_dropdown.config(state=tk.NORMAL)
         self.status_var.set("Status: Not connected")
         self.is_connected = False
+        if self.data_thread is not None:
+            self.data_thread.join()
+            self.data_thread = None
+        while not self.data_queue.empty():
+            self.data_queue.get()
         if self.after_id:
             self.master.after_cancel(self.after_id)
             self.after_id = None
+        self.after_id = self.master.after(1000, self.update_plot)
+
+    def start_clicked(self):
+        if not self.is_connected:
+            self.is_running = True
+            self.start_button.config(state=tk.DISABLED)
+            self.stop_button.config(state=tk.NORMAL)
+            self.port_dropdown.config(state=tk.DISABLED)
+            self.baud_dropdown.config(state=tk.DISABLED)
+            connected = self.serial_connection.connect(self.port_var.get(), self.baud_var.get())
+            if connected:
+                self.data_thread = threading.Thread(target=self.read_data_thread, daemon=True)
+                self.data_thread.start()
+                self.update_plot()
+                self.status_var.set(f"Status: Connected to {self.port_var.get()}")
+                self.is_connected = True
+            else:
+                self.status_var.set("Status: Failed to connect")
+                self.stop_clicked()
 
     def exit_clicked(self):
         self.stop_clicked()
