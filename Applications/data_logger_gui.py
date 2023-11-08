@@ -143,13 +143,6 @@ class SerialGUI:
         self.baud_dropdown.bind("<<ComboboxSelected>>", self.on_baud_selected)
 
     def on_port_selected(self, event):
-        if self.after_id:
-            self.master.after_cancel(self.after_id)
-            self.after_id = None
-
-        if self.is_connected:
-            self.stop_clicked()
-
         self.update_port_selection()
 
     def on_baud_selected(self, event):
