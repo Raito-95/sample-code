@@ -1,96 +1,32 @@
-import logging
-import queue
-import re
-import serial
-import threading
 import tkinter as tk
-from collections import deque
 from tkinter import ttk
+import serial.tools.list_ports
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-import serial.tools.list_ports
+import re
+import serial
+from collections import deque
 
-logging.basicConfig(filename='serial_gui.log', level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+# Constants for the buffer size
+BUFFER_SIZE = 100
+# Constants for number of lines to read at once
+NUM_LINES_TO_READ = 2
 
-data_identifiers = {'RightTemperature': 0,
-                    'LeftTemperature': 1}
-
-class DataProcessor:
-    def __init__(self, identifiers, save_filename):
-        self.data_identifiers = {re.compile(f'^{id}'): idx for id, idx in identifiers.items()}
-        self.buff = [deque(maxlen=100) for _ in identifiers.values()]
-        self.filename = save_filename
-
-    def process_data(self, data_raw):
-        try:
-            data = data_raw.decode()
-            values = data.split("\n")
-            for value in values:
-                for pattern, index in self.data_identifiers.items():
-                    match = pattern.match(value)
-                    if match:
-                        temperature = float(value.split(":")[1].strip())
-                        self.buff[index].append(temperature)
-                        self.save_data_to_txt(value)
-        except Exception as e:
-            logging.error("Data processing error: %s", e)
-
-    def save_data_to_txt(self, data):
-        try:
-            with open(self.filename, 'a') as file:
-                file.write(data + '\n')
-        except Exception as e:
-            logging.error("Error while saving data to file: %s", e)
-
-class SerialConnection:
-    def __init__(self):
-        self.serial_connection = None
-
-    def get_available_ports(self):
-        ports = serial.tools.list_ports.comports()
-        return [port.device for port in ports]
-    
-    def connect(self, port, baud_rate):
-        try:
-            self.serial_connection = serial.Serial(port, baud_rate, timeout=1)
-            logging.info("Connected to %s with baud rate %s", port, baud_rate)
-            return True
-        except Exception as e:
-            logging.error("Connection failed: %s", e)
-            return False
-
-    def disconnect(self):
-        if self.serial_connection and self.serial_connection.is_open:
-            try:
-                self.serial_connection.close()
-                logging.info("Disconnected from the serial port")
-            except Exception as e:
-                logging.error("Error while disconnecting: %s", e)
-
-    def read_data(self):
-        if self.serial_connection and self.serial_connection.is_open:
-            try:
-                return self.serial_connection.readline()
-            except Exception as e:
-                logging.warning("Read data failed: %s", e)
-                self.disconnect()
-        return None
-
-class SerialGUI:
-    def __init__(self, root, processor, connection):
-        self.master = root
-        self.data_processor = processor
-        self.serial_connection = connection
-        self.is_running = False
-        self.data_thread = None
-        self.data_queue = queue.Queue()
+# Main application class
+class SerialDataGUI(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.master = master  # master should be a Tk instance
+        self.serial_port = None
         self.after_id = None
-        self.is_connected = False
+        # Initialize deques with a fixed size
+        self.right_temperatures = deque(maxlen=BUFFER_SIZE)
+        self.left_temperatures = deque(maxlen=BUFFER_SIZE)
         self.setup_gui()
 
     def setup_gui(self):
-        self.master.title('Serial Data GUI')
-        self.master.resizable(False, False)
+        self.master.title('Serial Data GUI')  # type: ignore
+        self.master.resizable(False, False)   # type: ignore
 
         main_frame = ttk.Frame(self.master, padding="10")
         main_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
@@ -104,12 +40,14 @@ class SerialGUI:
         self.port_dropdown = ttk.Combobox(connection_frame, textvariable=self.port_var, state="readonly")
         self.port_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.refresh_button = ttk.Button(connection_frame, text="Refresh Ports", command=self.update_ports)
+        # Using a Unicode symbol to represent refresh
+        refresh_text = "\u21BB"  # This is the Unicode character for a clockwise open circle arrow
+        self.refresh_button = ttk.Button(connection_frame, text=refresh_text, command=self.update_ports)
         self.refresh_button.pack(side=tk.LEFT, padx=5, pady=5)
 
         baud_label = ttk.Label(connection_frame, text="Baud Rate:")
         baud_label.pack(side=tk.LEFT, padx=5, pady=5)
-        self.baud_var = tk.StringVar()
+        self.baud_var = tk.StringVar(value="115200")
         self.baud_dropdown = ttk.Combobox(connection_frame, textvariable=self.baud_var, state="readonly")
         self.baud_dropdown['values'] = ("9600", "19200", "38400", "57600", "115200")
         self.baud_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
@@ -121,7 +59,9 @@ class SerialGUI:
         self.start_button.pack(side=tk.LEFT, padx=(10, 5), pady=5, fill=tk.BOTH, expand=True)
         self.stop_button = ttk.Button(button_frame, text="Stop", command=self.stop_clicked, state='disabled')
         self.stop_button.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
-        self.exit_button = ttk.Button(button_frame, text="Exit", command=self.exit_clicked)
+        self.clear_button  = ttk.Button(button_frame, text="Clear", command=self.clear_plot)
+        self.clear_button .pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
+        self.exit_button = ttk.Button(button_frame, text="Exit", command=self.master.destroy)
         self.exit_button.pack(side=tk.LEFT, padx=(5, 10), pady=5, fill=tk.BOTH, expand=True)
 
         self.status_var = tk.StringVar()
@@ -131,134 +71,106 @@ class SerialGUI:
 
         self.figure = Figure(figsize=(6, 4), dpi=100)
         self.plot = self.figure.add_subplot(111)
-        self.canvas = FigureCanvasTkAgg(self.figure, master=self.master)
+        self.canvas = FigureCanvasTkAgg(self.figure, master=main_frame)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        
+
         self.update_ports_periodically()
         self.update_ports()
-        self.update_plot()
-        
-        self.port_dropdown.bind("<<ComboboxSelected>>", self.on_port_selected)
-        self.baud_dropdown.bind("<<ComboboxSelected>>", self.on_baud_selected)
-
-    def on_port_selected(self, event):
-        self.update_port_selection()
-
-    def on_baud_selected(self, event):
-        self.update_baud_selection()
-
-    def update_port_selection(self):
-        if not self.is_running:
-            self.serial_connection.disconnect()
-            self.status_var.set("Status: Not connected")
-            self.is_connected = False
-
-    def update_baud_selection(self):
-        if not self.is_running:
-            self.serial_connection.disconnect()
-            self.status_var.set("Status: Not connected")
-            self.is_connected = False
-
-    def update_ports_periodically(self):
-        current_selection = self.port_var.get()
-        available_ports = self.serial_connection.get_available_ports()
-        self.port_dropdown['values'] = available_ports
-        if current_selection in available_ports:
-            self.port_dropdown.set(current_selection)
-        elif available_ports:
-            self.port_dropdown.set(available_ports[0])
 
     def update_ports(self):
-        available_ports = self.serial_connection.get_available_ports()
-        self.port_dropdown['values'] = available_ports
-        if available_ports:
-            self.port_dropdown.set(available_ports[0])
-            
-    def stop_clicked(self):
-        self.is_running = False
-        if self.serial_connection.serial_connection is not None:
-            self.serial_connection.disconnect()
-        self.stop_button.config(state=tk.DISABLED)
-        self.start_button.config(state=tk.NORMAL)
-        self.port_dropdown.config(state=tk.NORMAL)
-        self.baud_dropdown.config(state=tk.NORMAL)
-        self.status_var.set("Status: Not connected")
-        self.is_connected = False
-        if self.data_thread is not None:
-            self.data_thread.join()
-            self.data_thread = None
-        while not self.data_queue.empty():
-            self.data_queue.get()
-        if self.after_id:
-            self.master.after_cancel(self.after_id)
-            self.after_id = None
-        self.after_id = self.master.after(1000, self.update_plot)
+        if self.start_button['state'] == 'disabled':  # System is started, don't update ports
+            return
+        current_port = self.port_var.get()
+        ports = [comport.device for comport in serial.tools.list_ports.comports()]
+        self.port_dropdown['values'] = ports
+        if current_port in ports:
+            self.port_var.set(current_port)  # Keep the current selection if available
+        elif ports:
+            self.port_var.set(ports[0])  # Default to the first port if available
+        else:
+            self.port_var.set('')  # No ports available
+
+    def update_ports_periodically(self):
+        self.update_ports()
+        self.after(5000, self.update_ports_periodically)  # Update every 5 seconds
 
     def start_clicked(self):
-        if not self.is_connected:
-            self.is_running = True
-            self.start_button.config(state=tk.DISABLED)
-            self.stop_button.config(state=tk.NORMAL)
-            self.port_dropdown.config(state=tk.DISABLED)
-            self.baud_dropdown.config(state=tk.DISABLED)
-            connected = self.serial_connection.connect(self.port_var.get(), self.baud_var.get())
-            if connected:
-                self.data_thread = threading.Thread(target=self.read_data_thread, daemon=True)
-                self.data_thread.start()
-                self.update_plot()
-                self.status_var.set(f"Status: Connected to {self.port_var.get()}")
-                self.is_connected = True
-            else:
-                self.status_var.set("Status: Failed to connect")
-                self.stop_clicked()
+        try:
+            baud_rate = int(self.baud_var.get())
+            self.serial_port = serial.Serial(self.port_var.get(), baud_rate, timeout=1)
+            self.status_var.set(f"Connected to {self.port_var.get()} at {baud_rate} baud.")
+            
+            # Disable port and baud rate controls
+            self.port_dropdown['state'] = 'disabled'
+            self.baud_dropdown['state'] = 'disabled'
+            self.refresh_button['state'] = 'disabled'
+            
+            self.start_button['state'] = 'disabled'
+            self.stop_button['state'] = 'normal'
+            self.update_plot()
+        except serial.SerialException as e:
+            self.status_var.set(f"Error: {e}")
+        except ValueError as e:
+            self.status_var.set(f"Invalid baud rate: {self.baud_var.get()}")
 
-    def exit_clicked(self):
-        self.stop_clicked()
+    def stop_clicked(self):
+        if self.serial_port and self.serial_port.is_open:
+            self.serial_port.close()
         if self.after_id:
             self.master.after_cancel(self.after_id)
-        self.master.quit()
+        
+        # Re-enable port and baud rate controls
+        self.port_dropdown['state'] = 'readonly'
+        self.baud_dropdown['state'] = 'readonly'
+        self.refresh_button['state'] = 'normal'
+        
+        self.start_button['state'] = 'normal'
+        self.stop_button['state'] = 'disabled'
+        self.status_var.set("Stopped.")
 
-    def read_data_thread(self):
-        while self.is_running:
-            data_raw = self.serial_connection.read_data()
-            if data_raw:
-                self.data_processor.process_data(data_raw)
-                self.data_queue.put((self.data_processor.buff[0].copy(), self.data_processor.buff[1].copy()))
-        self.cleanup_thread()
+    def read_serial(self):
+        if self.serial_port and self.serial_port.is_open:
+            for _ in range(NUM_LINES_TO_READ):
+                line = self.serial_port.readline().decode('utf-8').rstrip()
+                right_match = re.search(r"RightTemperature:\s*(\d+\.?\d*)", line)
+                left_match = re.search(r"LeftTemperature:\s*(\d+\.?\d*)", line)
+                if right_match:
+                    self.right_temperatures.append(float(right_match.group(1)))
+                if left_match:
+                    self.left_temperatures.append(float(left_match.group(1)))
 
-    def cleanup_thread(self):
-        if self.data_thread is not None:
-            self.data_thread = None
+    def clear_plot(self):
+        # Clear the temperature data lists
+        self.right_temperatures.clear()
+        self.left_temperatures.clear()
+
+        # Clear the plot
+        self.plot.clear()
+        self.plot.set_xlabel('Time')
+        self.plot.set_ylabel('Temperature (°C)')
+        self.canvas.draw_idle()
 
     def update_plot(self):
-        if not self.data_queue.empty():
-            right_temperature, left_temperature = self.data_queue.get_nowait()
-            self.plot.clear()
-            
-            self.plot.plot(right_temperature, label='Right Temperature', color='red')
-            
-            self.plot.plot(left_temperature, label='Left Temperature', color='blue')
+        self.read_serial()
+        self.plot.clear()
 
-            self.plot.set_xlabel('Time')
-            self.plot.set_ylabel('Temperature (°C)')
+        # print(f"Right Temps: {self.right_temperatures}")  # Debugging print statement
+        # print(f"Left Temps: {self.left_temperatures}")    # Debugging print statement
 
-            if right_temperature and left_temperature:
-                last_right_temp = right_temperature[-1]
-                last_left_temp = left_temperature[-1]
-                self.plot.annotate(f'{last_right_temp:.2f}', (len(right_temperature) - 1, last_right_temp), textcoords="offset points", xytext=(0,10), ha='center', color='red')
-                self.plot.annotate(f'{last_left_temp:.2f}', (len(left_temperature) - 1, last_left_temp), textcoords="offset points", xytext=(0,10), ha='center', color='blue')
-            
+        # Plot even if there's less than 100 items, deque will handle the limit
+        self.plot.plot(range(len(self.right_temperatures)), self.right_temperatures, label='Right Temperature', color='red')
+        self.plot.plot(range(len(self.left_temperatures)), self.left_temperatures, label='Left Temperature', color='blue')
+
+        self.plot.set_xlabel('Time')
+        self.plot.set_ylabel('Temperature (°C)')
+        if self.right_temperatures or self.left_temperatures:
             self.plot.legend(loc='upper left')
-            self.canvas.draw_idle()
-        self.after_id = self.master.after(1000, self.update_plot)
 
-def main():
-    root = tk.Tk()
-    processor = DataProcessor(data_identifiers, "data.txt")
-    connection = SerialConnection()
-    SerialGUI(root, processor, connection)
-    root.mainloop()
+        self.canvas.draw_idle()
+        self.after_id = self.master.after(1000, self.update_plot)  # Schedule next update
 
-if __name__ == "__main__":
-    main()
+# Create the main window
+root = tk.Tk()
+app = SerialDataGUI(root)
+root.mainloop()
