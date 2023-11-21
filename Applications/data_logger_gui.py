@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import serial.tools.list_ports
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -7,30 +7,27 @@ import re
 import serial
 from collections import deque
 
-# Constants for the buffer size
-BUFFER_SIZE = 100
-# Constants for number of lines to read at once
-NUM_LINES_TO_READ = 2
+BUFFER_SIZE = 100 # Buffer size for data storage
+NUM_LINES_TO_READ = 2 # Number of lines to read from serial at once
 
-# Main application class
 class SerialDataGUI(tk.Frame):
     def __init__(self, master):
         super().__init__(master)
-        self.master = master  # master should be a Tk instance
+        self.master = master
         self.serial_port = None
         self.after_id = None
-        # Initialize deques with a fixed size
-        self.right_temperatures = deque(maxlen=BUFFER_SIZE)
-        self.left_temperatures = deque(maxlen=BUFFER_SIZE)
+        self.deques = {} # Store data based on user-defined patterns
         self.setup_gui()
 
+    # Setup main GUI layout
+    # Includes connection settings, pattern input, and control buttons
     def setup_gui(self):
         self.master.title('Serial Data GUI')  # type: ignore
         self.master.resizable(False, False)   # type: ignore
 
         main_frame = ttk.Frame(self.master, padding="10")
         main_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
+        
         connection_frame = ttk.LabelFrame(main_frame, text="Connection Settings", padding="10")
         connection_frame.pack(side=tk.TOP, fill=tk.X, expand=True)
 
@@ -40,8 +37,7 @@ class SerialDataGUI(tk.Frame):
         self.port_dropdown = ttk.Combobox(connection_frame, textvariable=self.port_var, state="readonly")
         self.port_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
 
-        # Using a Unicode symbol to represent refresh
-        refresh_text = "\u21BB"  # This is the Unicode character for a clockwise open circle arrow
+        refresh_text = "\u21BB"
         self.refresh_button = ttk.Button(connection_frame, text=refresh_text, command=self.update_ports)
         self.refresh_button.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -51,6 +47,10 @@ class SerialDataGUI(tk.Frame):
         self.baud_dropdown = ttk.Combobox(connection_frame, textvariable=self.baud_var, state="readonly")
         self.baud_dropdown['values'] = ("9600", "19200", "38400", "57600", "115200")
         self.baud_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
+
+        pattern_frame = ttk.LabelFrame(main_frame, text="Pattern Input", padding="10")
+        pattern_frame.pack(side=tk.TOP, fill=tk.X, expand=True)
+        self.setup_pattern_controls(pattern_frame)
 
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
@@ -78,30 +78,55 @@ class SerialDataGUI(tk.Frame):
         self.update_ports_periodically()
         self.update_ports()
 
+    # Setup controls for pattern input and management
+    def setup_pattern_controls(self, parent):
+        pattern_entry_frame = ttk.Frame(parent)
+        pattern_entry_frame.pack(side=tk.TOP, fill=tk.X, expand=True)
+
+        self.pattern_var = tk.StringVar()
+        pattern_entry = ttk.Entry(pattern_entry_frame, textvariable=self.pattern_var)
+        pattern_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5, pady=5)
+
+        pattern_entry_tooltip = ttk.Label(pattern_entry_frame, text="Enter regex pattern here")
+        pattern_entry_tooltip.pack(side=tk.LEFT, padx=5)
+
+        submit_button = ttk.Button(pattern_entry_frame, text="Submit", command=self.submit_pattern)
+        submit_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.pattern_listbox = tk.Listbox(parent, height=6)
+        self.pattern_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        delete_button = ttk.Button(parent, text="Delete", command=self.delete_pattern)
+        delete_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+    # Refresh list of available serial ports
     def update_ports(self):
-        if self.start_button['state'] == 'disabled':  # System is started, don't update ports
+        if self.start_button['state'] == 'disabled':
             return
         current_port = self.port_var.get()
         ports = [comport.device for comport in serial.tools.list_ports.comports()]
         self.port_dropdown['values'] = ports
         if current_port in ports:
-            self.port_var.set(current_port)  # Keep the current selection if available
+            self.port_var.set(current_port)
         elif ports:
-            self.port_var.set(ports[0])  # Default to the first port if available
+            self.port_var.set(ports[0])
         else:
-            self.port_var.set('')  # No ports available
+            self.port_var.set('')
 
+    # Periodically update the list of available serial ports
     def update_ports_periodically(self):
         self.update_ports()
-        self.after(5000, self.update_ports_periodically)  # Update every 5 seconds
+        self.after(5000, self.update_ports_periodically)
 
+    # Handles starting the serial communication with the specified port and baud rate
     def start_clicked(self):
         try:
-            baud_rate = int(self.baud_var.get())
+            baud_rate = int(self.baud_var.get())  # Parse baud rate from user input
+            # Attempt to open the serial port with the specified baud rate
             self.serial_port = serial.Serial(self.port_var.get(), baud_rate, timeout=1)
             self.status_var.set(f"Connected to {self.port_var.get()} at {baud_rate} baud.")
             
-            # Disable port and baud rate controls
+            # Disable UI elements to prevent changes during active connection
             self.port_dropdown['state'] = 'disabled'
             self.baud_dropdown['state'] = 'disabled'
             self.refresh_button['state'] = 'disabled'
@@ -110,67 +135,104 @@ class SerialDataGUI(tk.Frame):
             self.stop_button['state'] = 'normal'
             self.update_plot()
         except serial.SerialException as e:
-            self.status_var.set(f"Error: {e}")
-        except ValueError as e:
-            self.status_var.set(f"Invalid baud rate: {self.baud_var.get()}")
+            messagebox.showerror("Serial Connection Error", str(e))
+            self.status_var.set("Connection failed")
+        except ValueError:
+            messagebox.showerror("Invalid Input", "Invalid baud rate.")
+            self.status_var.set("Invalid baud rate")
 
+    # Handle stopping serial communication
     def stop_clicked(self):
         if self.serial_port and self.serial_port.is_open:
-            self.serial_port.close()
-        if self.after_id:
-            self.master.after_cancel(self.after_id)
-        
-        # Re-enable port and baud rate controls
+            try:
+                self.serial_port.close()
+                self.status_var.set("Disconnected.")
+            except serial.SerialException as e:
+                messagebox.showerror("Serial Disconnection Error", str(e))
+                self.status_var.set("Disconnection failed")
+        else:
+            self.status_var.set("No active connection")
+
         self.port_dropdown['state'] = 'readonly'
         self.baud_dropdown['state'] = 'readonly'
         self.refresh_button['state'] = 'normal'
         
         self.start_button['state'] = 'normal'
         self.stop_button['state'] = 'disabled'
-        self.status_var.set("Stopped.")
 
+    # Validate and submit user-entered pattern for data extraction
+    def submit_pattern(self):
+        pattern = self.pattern_var.get()
+        try:
+            re.compile(pattern)
+            if pattern not in self.deques:
+                self.deques[pattern] = deque(maxlen=BUFFER_SIZE)
+                self.pattern_listbox.insert(tk.END, pattern)
+            self.pattern_var.set('')
+        except re.error:
+            messagebox.showerror("Invalid Pattern", "The entered pattern is not a valid regular expression.")
+
+    # Delete a selected pattern
+    def delete_pattern(self):
+        selected_index = self.pattern_listbox.curselection()
+        if selected_index:
+            selected_pattern = self.pattern_listbox.get(selected_index)
+            self.pattern_listbox.delete(selected_index)
+            del self.deques[selected_pattern]
+
+    # Read and process serial data based on defined patterns
     def read_serial(self):
         if self.serial_port and self.serial_port.is_open:
-            for _ in range(NUM_LINES_TO_READ):
-                line = self.serial_port.readline().decode('utf-8').rstrip()
-                right_match = re.search(r"RightTemperature:\s*(\d+\.?\d*)", line)
-                left_match = re.search(r"LeftTemperature:\s*(\d+\.?\d*)", line)
-                if right_match:
-                    self.right_temperatures.append(float(right_match.group(1)))
-                if left_match:
-                    self.left_temperatures.append(float(left_match.group(1)))
+            try:
+                for _ in range(NUM_LINES_TO_READ):
+                    line = self.serial_port.readline().decode('utf-8').rstrip()
+                    for pattern, deque_obj in self.deques.items():
+                        regex = f"{pattern}:\s*(-?\d+\.\d+)"
+                        match = re.search(regex, line)
+                        if match and match.group(1):
+                            try:
+                                deque_obj.append(float(match.group(1)))
+                            except ValueError:
+                                pass
+            except serial.SerialException as e:
+                messagebox.showerror("Serial Reading Error", str(e))
 
+    # Clear data and reset plot
     def clear_plot(self):
-        # Clear the temperature data lists
-        self.right_temperatures.clear()
-        self.left_temperatures.clear()
+        for deque in self.deques.values():
+            deque.clear()
 
-        # Clear the plot
         self.plot.clear()
         self.plot.set_xlabel('Time')
-        self.plot.set_ylabel('Temperature (°C)')
+        self.plot.set_ylabel('Value')
         self.canvas.draw_idle()
 
+    # Processes incoming serial data and updates the plot with new values
     def update_plot(self):
-        self.read_serial()
-        self.plot.clear()
+        self.read_serial()  # Read new data from the serial port
+        self.plot.clear()   # Clear the existing plot
 
-        # print(f"Right Temps: {self.right_temperatures}")  # Debugging print statement
-        # print(f"Left Temps: {self.left_temperatures}")    # Debugging print statement
+        # Plot new data for each user-defined pattern
+        for pattern, deque_obj in self.deques.items():
+            if deque_obj:
+                # Plot data with a label for the legend
+                self.plot.plot(range(len(deque_obj)), deque_obj, label=pattern)
 
-        # Plot even if there's less than 100 items, deque will handle the limit
-        self.plot.plot(range(len(self.right_temperatures)), self.right_temperatures, label='Right Temperature', color='red')
-        self.plot.plot(range(len(self.left_temperatures)), self.left_temperatures, label='Left Temperature', color='blue')
-
-        self.plot.set_xlabel('Time')
-        self.plot.set_ylabel('Temperature (°C)')
-        if self.right_temperatures or self.left_temperatures:
+        # Display legend if there are any plotted data series
+        if self.deques:
             self.plot.legend(loc='upper left')
+        else:
+            self.status_var.set("No data to display")
 
+        # Set labels for the axes
+        self.plot.set_xlabel('Time')
+        self.plot.set_ylabel('Value')
         self.canvas.draw_idle()
-        self.after_id = self.master.after(1000, self.update_plot)  # Schedule next update
+        # Schedule the next update
+        self.after_id = self.master.after(1000, self.update_plot)
 
-# Create the main window
+
+# Create and run the main application window
 root = tk.Tk()
 app = SerialDataGUI(root)
 root.mainloop()
