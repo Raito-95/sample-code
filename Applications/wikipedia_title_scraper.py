@@ -20,5 +20,8 @@ def get_wikipedia_titles():
 
 if __name__ == '__main__':
     links = get_wikipedia_titles()  # Call the function to fetch links from the Wikipedia page
-    for link in links:
-        print(link)  # Print the links
+    if links is not None:
+        for link in links:
+            print(link)  # Print the links
+    else:
+        print("Error")

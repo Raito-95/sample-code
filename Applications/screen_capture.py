@@ -7,7 +7,7 @@ image = ImageGrab.grab()
 width, height = image.size  # Get the width and height of the image
 
 # Define a video writer
-fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the video codec
+fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the video codec # type: ignore
 output_filename = 'screen_capture.avi'  # Output video filename
 frame_rate = 30  # Frame rate (frames per second)
 video = cv2.VideoWriter(output_filename, fourcc, frame_rate, (width, height))  # Create a video writer
