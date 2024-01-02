@@ -2,7 +2,7 @@
 class Node:
     def __init__(self, data):
         self.data = data  # Store data
-        self.next = None  # Reference to the next node
+        self.next: Node | None = None
 
 # Define the LinkedList class
 class LinkedList:

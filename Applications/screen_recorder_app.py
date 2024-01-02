@@ -54,11 +54,15 @@ class ScreenRecorderApp:
             messagebox.showwarning("Warning", "Please set the save directory before starting recording.")
             return
 
-        if not self.rect:
+        if self.rect is None:
             messagebox.showwarning("Warning", "Please select recording area before starting recording.")
             return
 
-        fourcc = cv2.VideoWriter_fourcc(*"XVID")
+        if len(self.rect) != 4 or not all(isinstance(n, int) for n in self.rect):
+            messagebox.showwarning("Warning", "Recording area is not set correctly.")
+            return
+
+        fourcc = cv2.VideoWriter_fourcc(*"XVID") # type: ignore
         self.video_writer = cv2.VideoWriter(self.output_filename, fourcc, 30.0, (self.rect[2] - self.rect[0], self.rect[3] - self.rect[1]))
 
         self.recording = True
@@ -105,23 +109,34 @@ class ScreenRecorderApp:
     def draw_rectangle(self):
         if self.rect_id:
             self.selection_canvas.delete(self.rect_id)
-        self.rect = (min(self.rect[0], self.rect[2]), min(self.rect[1], self.rect[3]),
-                     max(self.rect[0], self.rect[2]), max(self.rect[1], self.rect[3]))
-        self.rect_id = self.selection_canvas.create_rectangle(self.rect, outline="red", width=5)
 
+        if self.rect and len(self.rect) == 4:
+            normalized_rect = (
+                min(self.rect[0], self.rect[2]), 
+                min(self.rect[1], self.rect[3]),
+                max(self.rect[0], self.rect[2]), 
+                max(self.rect[1], self.rect[3])
+            )
+            self.rect_id = self.selection_canvas.create_rectangle(normalized_rect, outline="red", width=5)
+        else:
+            print("Rectangle coordinates are not set properly.")
+            
     def update(self):
-        if self.recording:
+        if self.recording and self.rect is not None:
             screenshot = ImageGrab.grab(bbox=self.rect)
             frame = np.array(screenshot)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             mouse_x, mouse_y = pyautogui.position()
             if self.rect[0] <= mouse_x <= self.rect[2] and self.rect[1] <= mouse_y <= self.rect[3]:
-                cv2.circle(frame, (mouse_x - self.rect[0], mouse_y - self.rect[1]), 5, (0, 0, 255), -1)
+                center_x = int(mouse_x - self.rect[0])
+                center_y = int(mouse_y - self.rect[1])
+                cv2.circle(frame, (center_x, center_y), 5, (0, 0, 255), -1)
 
             self.video_writer.write(frame)
 
         self.root.after(10, self.update)
+
 
     def run(self):
         self.root.mainloop()

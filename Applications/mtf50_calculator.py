@@ -54,7 +54,7 @@ class MTF50Processor:
     
     def process_from_camera(self):
         cv2.namedWindow('Camera')
-        cv2.setMouseCallback('Camera', self.select_roi)
+        cv2.setMouseCallback('Camera', self.select_roi) # type: ignore
         cap = cv2.VideoCapture(0)
         auto_focus = cap.get(cv2.CAP_PROP_AUTOFOCUS)
         auto_exposure = cap.get(cv2.CAP_PROP_AUTO_EXPOSURE)
