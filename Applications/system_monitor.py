@@ -33,7 +33,7 @@ class SystemMonitor(QMainWindow):
         
         show_action.triggered.connect(self.show)
         hide_action.triggered.connect(self.hide)
-        quit_action.triggered.connect(app.quit)  # Use app.quit() to correctly close the application
+        quit_action.triggered.connect(app.quit)  # 使用app.quit()來正確關閉應用程式
         
         tray_menu = QMenu()
         tray_menu.addAction(show_action)
@@ -63,7 +63,8 @@ class SystemMonitor(QMainWindow):
 
         self.progress_bar_cpu = QProgressBar(self.central_widget)
         self.progress_bar_cpu.setRange(0, 100)
-        self.progress_bar_cpu.setTextVisible(True)  # Show text
+        self.progress_bar_cpu.setFormat("")  # 移除百分比文字
+        self.progress_bar_cpu.setMinimumWidth(200)  # 設置最小寬度為200像素
         layout.addWidget(self.progress_bar_cpu)
 
         # GPU
@@ -74,7 +75,8 @@ class SystemMonitor(QMainWindow):
 
         self.progress_bar_gpu = QProgressBar(self.central_widget)
         self.progress_bar_gpu.setRange(0, 100)
-        self.progress_bar_gpu.setTextVisible(True)  # Show text
+        self.progress_bar_gpu.setFormat("")  # 移除百分比文字
+        self.progress_bar_gpu.setMinimumWidth(200)  # 設置最小寬度為200像素
         layout.addWidget(self.progress_bar_gpu)
 
         # Memory
@@ -85,7 +87,8 @@ class SystemMonitor(QMainWindow):
 
         self.progress_bar_mem = QProgressBar(self.central_widget)
         self.progress_bar_mem.setRange(0, 100)
-        self.progress_bar_mem.setTextVisible(True)  # Show text
+        self.progress_bar_mem.setFormat("")  # 移除百分比文字
+        self.progress_bar_mem.setMinimumWidth(200)  # 設置最小寬度為200像素
         layout.addWidget(self.progress_bar_mem)
 
         # Disk
@@ -93,7 +96,7 @@ class SystemMonitor(QMainWindow):
         self.disk_progress_bars = []
 
         for partition in psutil.disk_partitions():
-            # Check if the disk exists and is readable
+            # 檢查硬碟是否存在並且可讀
             if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
                 label = QLabel(self.central_widget)
                 label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -103,7 +106,8 @@ class SystemMonitor(QMainWindow):
 
                 progress_bar = QProgressBar(self.central_widget)
                 progress_bar.setRange(0, 100)
-                progress_bar.setTextVisible(True)  # Show text
+                progress_bar.setFormat("")  # 移除百分比文字
+                progress_bar.setMinimumWidth(200)  # 設置最小寬度為200像素
                 layout.addWidget(progress_bar)
                 self.disk_progress_bars.append(progress_bar)
 
@@ -113,55 +117,51 @@ class SystemMonitor(QMainWindow):
         self.timer.start(1000)
 
     def updateSystemInfo(self):
-        # Network upload and download data
+        # 網絡上傳和下載數據
         network = psutil.net_io_counters()
         upload = network.bytes_sent / 1024 / 1024  # MB
         download = network.bytes_recv / 1024 / 1024  # MB
         self.label_network.setText(f"Net: ↑ {upload:.2f}MB/s ↓ {download:.2f}MB/s")
 
-        # CPU usage
+        # CPU 使用率
         cpu_usage = psutil.cpu_percent()
         self.label_cpu.setText(f"CPU: {cpu_usage:.1f}%")
         self.progress_bar_cpu.setValue(int(cpu_usage))
 
-        # Set the progress bar width to match the label background width
-        label_width = self.label_cpu.width()
-        self.progress_bar_cpu.setFixedWidth(label_width)
-
-        # GPU usage and temperature
+        # GPU 使用率和溫度
         gpu_info = GPUtil.getGPUs()[0]
         gpu_usage = gpu_info.load * 100
         gpu_temp = gpu_info.temperature
         self.label_gpu.setText(f"GPU: {gpu_usage:.1f}% - Temp: {gpu_temp}°C")
         self.progress_bar_gpu.setValue(int(gpu_usage))
 
-        # Memory usage and used memory
+        # 記憶體使用率和已使用記憶體
         mem = psutil.virtual_memory()
         mem_usage = mem.percent
-        mem_used_gb = mem.used / 1024 / 1024 / 1024  # GB
-        mem_total_gb = mem.total / 1024 / 1024 / 1024  # GB
+        mem_used_gb = mem.used / 1024 / 1024 / 1024  # 從MB轉換為GB
+        mem_total_gb = mem.total / 1024 / 1024 / 1024  # 從MB轉換為GB
         self.label_mem.setText(f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB")
         self.progress_bar_mem.setValue(int(mem_usage))
 
-        # Update disk usage
+        # 更新硬碟使用率
         for index, partition in enumerate(psutil.disk_partitions()):
-            # Check if the disk exists and is readable
+            # 檢查硬碟是否存在並且可讀
             if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
                 disk_usage = psutil.disk_usage(partition.mountpoint)
                 disk_usage_percent = disk_usage.percent
-                disk_total_gb = disk_usage.total / (1024 ** 3)  # GB
-                disk_used_gb = disk_usage.used / (1024 ** 3)  # GB
+                disk_total_gb = disk_usage.total / (1024 ** 3)  # 從MB轉換為GB
+                disk_used_gb = disk_usage.used / (1024 ** 3)  # 從MB轉換為GB
                 self.disk_labels[index].setText(f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
                 self.disk_progress_bars[index].setValue(int(disk_usage_percent))
                 
     def setGeometryToBottom(self):
         desktop = QDesktopWidget()
-        screen = desktop.availableGeometry(self)  # Use self as a parameter to ensure the window is not obscured by other windows
+        screen = desktop.availableGeometry(self)  # 使用self作為參數以確保窗口不會被其他窗口遮擋
         window_height = self.height()
         self.setGeometry(screen.width() - self.width(), screen.height() - window_height, self.width(), window_height)
 
 def main():
-    global app  # Make app a global variable for access in quit_action
+    global app  # 將app變數設為全域變數，以便在quit_action中訪問
     app = QApplication(sys.argv)
     monitor = SystemMonitor()
     monitor.show()
