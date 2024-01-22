@@ -13,7 +13,7 @@ class SystemMonitor(QMainWindow):
         self.initUI()
         self.initSystemTray()
         self.initWidgets()
-        self.initTimer()
+        self.initTimers()
         self.setGeometryToBottom()
 
     def initUI(self):
@@ -24,8 +24,10 @@ class SystemMonitor(QMainWindow):
         self.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
 
     def initSystemTray(self):
+        current_path = os.path.dirname(os.path.abspath(__file__))
+        icon_path = os.path.join(current_path, 'test.png')
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon("C:/Users/User/Github/sample-code/Applications/test.png"))
+        self.tray_icon.setIcon(QIcon(icon_path))
 
         show_action = QAction("Show", self)
         hide_action = QAction("Hide", self)
@@ -33,7 +35,7 @@ class SystemMonitor(QMainWindow):
         
         show_action.triggered.connect(self.show)
         hide_action.triggered.connect(self.hide)
-        quit_action.triggered.connect(app.quit)  # 使用app.quit()來正確關閉應用程式
+        quit_action.triggered.connect(app.quit)
         
         tray_menu = QMenu()
         tray_menu.addAction(show_action)
@@ -47,121 +49,160 @@ class SystemMonitor(QMainWindow):
         self.central_widget = QWidget(self)
         self.setCentralWidget(self.central_widget)
 
-        layout = QVBoxLayout(self.central_widget)
+        self.layout = QVBoxLayout(self.central_widget)
+        self.initNetworkWidget()
+        self.initCPUWidget()
+        self.initGPUWidget()
+        self.initMemoryWidget()
+        self.initDiskWidgets()
 
-        # Network
-        self.label_network = QLabel(self.central_widget)
-        self.label_network.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.label_network.setStyleSheet("color: white;")
-        layout.addWidget(self.label_network)
+    def initNetworkWidget(self):
+        self.label_network = self.createLabel()
+        self.layout.addWidget(self.label_network)
 
-        # CPU
-        self.label_cpu = QLabel(self.central_widget)
-        self.label_cpu.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.label_cpu.setStyleSheet("color: white;")
-        layout.addWidget(self.label_cpu)
+    def initCPUWidget(self):
+        self.label_cpu, self.progress_bar_cpu = self.createLabelProgressBar()
+        self.layout.addWidget(self.label_cpu)
+        self.layout.addWidget(self.progress_bar_cpu)
 
-        self.progress_bar_cpu = QProgressBar(self.central_widget)
-        self.progress_bar_cpu.setRange(0, 100)
-        self.progress_bar_cpu.setFormat("")  # 移除百分比文字
-        self.progress_bar_cpu.setMinimumWidth(200)  # 設置最小寬度為200像素
-        layout.addWidget(self.progress_bar_cpu)
+    def initGPUWidget(self):
+        self.label_gpu, self.progress_bar_gpu = self.createLabelProgressBar()
+        self.layout.addWidget(self.label_gpu)
+        self.layout.addWidget(self.progress_bar_gpu)
 
-        # GPU
-        self.label_gpu = QLabel(self.central_widget)
-        self.label_gpu.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.label_gpu.setStyleSheet("color: white;")
-        layout.addWidget(self.label_gpu)
+    def initMemoryWidget(self):
+        self.label_mem, self.progress_bar_mem = self.createLabelProgressBar()
+        self.layout.addWidget(self.label_mem)
+        self.layout.addWidget(self.progress_bar_mem)
 
-        self.progress_bar_gpu = QProgressBar(self.central_widget)
-        self.progress_bar_gpu.setRange(0, 100)
-        self.progress_bar_gpu.setFormat("")  # 移除百分比文字
-        self.progress_bar_gpu.setMinimumWidth(200)  # 設置最小寬度為200像素
-        layout.addWidget(self.progress_bar_gpu)
-
-        # Memory
-        self.label_mem = QLabel(self.central_widget)
-        self.label_mem.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.label_mem.setStyleSheet("color: white;")
-        layout.addWidget(self.label_mem)
-
-        self.progress_bar_mem = QProgressBar(self.central_widget)
-        self.progress_bar_mem.setRange(0, 100)
-        self.progress_bar_mem.setFormat("")  # 移除百分比文字
-        self.progress_bar_mem.setMinimumWidth(200)  # 設置最小寬度為200像素
-        layout.addWidget(self.progress_bar_mem)
-
-        # Disk
+    def initDiskWidgets(self):
         self.disk_labels = []
         self.disk_progress_bars = []
-
         for partition in psutil.disk_partitions():
-            # 檢查硬碟是否存在並且可讀
             if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
-                label = QLabel(self.central_widget)
-                label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-                label.setStyleSheet("color: white;")
+                label, progress_bar = self.createLabelProgressBar()
                 self.disk_labels.append(label)
-                layout.addWidget(label)
-
-                progress_bar = QProgressBar(self.central_widget)
-                progress_bar.setRange(0, 100)
-                progress_bar.setFormat("")  # 移除百分比文字
-                progress_bar.setMinimumWidth(200)  # 設置最小寬度為200像素
-                layout.addWidget(progress_bar)
                 self.disk_progress_bars.append(progress_bar)
+                self.layout.addWidget(label)
+                self.layout.addWidget(progress_bar)
 
-    def initTimer(self):
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.updateSystemInfo)
-        self.timer.start(1000)
+    def createLabel(self):
+        label = QLabel(self.central_widget)
+        label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        label.setStyleSheet("color: white; background-color: transparent;")
+        return label
 
-    def updateSystemInfo(self):
-        # 網絡上傳和下載數據
-        network = psutil.net_io_counters()
-        upload = network.bytes_sent / 1024 / 1024  # MB
-        download = network.bytes_recv / 1024 / 1024  # MB
-        self.label_network.setText(f"Net: ↑ {upload:.2f}MB/s ↓ {download:.2f}MB/s")
+    def createLabelProgressBar(self):
+        label = QLabel(self.central_widget)
+        label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        label.setStyleSheet("color: white; background-color: transparent;")
 
-        # CPU 使用率
-        cpu_usage = psutil.cpu_percent()
-        self.label_cpu.setText(f"CPU: {cpu_usage:.1f}%")
-        self.progress_bar_cpu.setValue(int(cpu_usage))
+        progress_bar = QProgressBar(self.central_widget)
+        progress_bar.setRange(0, 100)
+        progress_bar.setFormat("")
+        progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid gray;
+                border-radius: 3px;
+                background-color: transparent;
+            }
 
-        # GPU 使用率和溫度
-        gpu_info = GPUtil.getGPUs()[0]
-        gpu_usage = gpu_info.load * 100
-        gpu_temp = gpu_info.temperature
-        self.label_gpu.setText(f"GPU: {gpu_usage:.1f}% - Temp: {gpu_temp}°C")
-        self.progress_bar_gpu.setValue(int(gpu_usage))
+            QProgressBar::chunk {
+                background-color: #05B8CC;
+                margin: 0px; /* Ensure chunk fills the entire progress bar */
+            }
+        """)
+        return label, progress_bar
 
-        # 記憶體使用率和已使用記憶體
-        mem = psutil.virtual_memory()
-        mem_usage = mem.percent
-        mem_used_gb = mem.used / 1024 / 1024 / 1024  # 從MB轉換為GB
-        mem_total_gb = mem.total / 1024 / 1024 / 1024  # 從MB轉換為GB
-        self.label_mem.setText(f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB")
-        self.progress_bar_mem.setValue(int(mem_usage))
+    def initTimers(self):
+        self.network_timer = QTimer(self)
+        self.network_timer.timeout.connect(self.updateNetworkInfo)
+        self.network_timer.start(3000)
 
-        # 更新硬碟使用率
-        for index, partition in enumerate(psutil.disk_partitions()):
-            # 檢查硬碟是否存在並且可讀
-            if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
-                disk_usage = psutil.disk_usage(partition.mountpoint)
-                disk_usage_percent = disk_usage.percent
-                disk_total_gb = disk_usage.total / (1024 ** 3)  # 從MB轉換為GB
-                disk_used_gb = disk_usage.used / (1024 ** 3)  # 從MB轉換為GB
-                self.disk_labels[index].setText(f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
-                self.disk_progress_bars[index].setValue(int(disk_usage_percent))
-                
+        self.cpu_timer = QTimer(self)
+        self.cpu_timer.timeout.connect(self.updateCPUInfo)
+        self.cpu_timer.start(1000)
+
+        self.gpu_timer = QTimer(self)
+        self.gpu_timer.timeout.connect(self.updateGPUInfo)
+        self.gpu_timer.start(4000)
+
+        self.memory_timer = QTimer(self)
+        self.memory_timer.timeout.connect(self.updateMemoryInfo)
+        self.memory_timer.start(2000)
+
+        self.disk_timer = QTimer(self)
+        self.disk_timer.timeout.connect(self.updateDiskInfo)
+        self.disk_timer.start(5000)
+
+    def updateNetworkInfo(self):
+        try:
+            network = psutil.net_io_counters()
+            upload = network.bytes_sent / 1024 / 1024
+            download = network.bytes_recv / 1024 / 1024
+            self.label_network.setText(f"Net: ↑ {upload:.2f}MB/s ↓ {download:.2f}MB/s")
+        except Exception as e:
+            self.label_network.setText("Network information unavailable")
+            # print(f"Error updating network info: {e}")
+
+    def updateCPUInfo(self):
+        try:
+            cpu_usage = psutil.cpu_percent()
+            self.label_cpu.setText(f"CPU: {cpu_usage:.1f}%")
+            self.progress_bar_cpu.setValue(int(cpu_usage))
+        except Exception as e:
+            self.label_cpu.setText("CPU information unavailable")
+            # print(f"Error updating CPU info: {e}")
+
+    def updateGPUInfo(self):
+        try:
+            gpu_info = GPUtil.getGPUs()[0] if GPUtil.getGPUs() else None
+            if gpu_info:
+                gpu_usage = gpu_info.load * 100
+                gpu_temp = gpu_info.temperature
+                self.label_gpu.setText(f"GPU: {gpu_usage:.1f}% - Temp: {gpu_temp}°C")
+                self.progress_bar_gpu.setValue(int(gpu_usage))
+            else:
+                self.label_gpu.setText("GPU information unavailable")
+        except Exception as e:
+            self.label_gpu.setText("GPU information unavailable")
+            # print(f"Error updating GPU info: {e}")
+
+    def updateMemoryInfo(self):
+        try:
+            mem = psutil.virtual_memory()
+            mem_usage = mem.percent
+            mem_used_gb = mem.used / 1024 / 1024 / 1024
+            mem_total_gb = mem.total / 1024 / 1024 / 1024
+            self.label_mem.setText(f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB")
+            self.progress_bar_mem.setValue(int(mem_usage))
+        except Exception as e:
+            self.label_mem.setText("Memory information unavailable")
+            # print(f"Error updating memory info: {e}")
+
+    def updateDiskInfo(self):
+        try:
+            for index, partition in enumerate(psutil.disk_partitions()):
+                if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
+                    disk_usage = psutil.disk_usage(partition.mountpoint)
+                    disk_usage_percent = disk_usage.percent
+                    disk_total_gb = disk_usage.total / (1024 ** 3)
+                    disk_used_gb = disk_usage.used / (1024 ** 3)
+                    self.disk_labels[index].setText(f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
+                    self.disk_progress_bars[index].setValue(int(disk_usage_percent))
+        except Exception as e:
+            for label in self.disk_labels:
+                label.setText("Disk information unavailable")
+            # print(f"Error updating disk info: {e}")
+
     def setGeometryToBottom(self):
         desktop = QDesktopWidget()
-        screen = desktop.availableGeometry(self)  # 使用self作為參數以確保窗口不會被其他窗口遮擋
+        screen = desktop.availableGeometry(self)
         window_height = self.height()
         self.setGeometry(screen.width() - self.width(), screen.height() - window_height, self.width(), window_height)
 
 def main():
-    global app  # 將app變數設為全域變數，以便在quit_action中訪問
+    global app
     app = QApplication(sys.argv)
     monitor = SystemMonitor()
     monitor.show()
