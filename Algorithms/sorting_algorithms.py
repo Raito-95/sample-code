@@ -10,13 +10,11 @@ def recursive(x):
 
 # Bubble sort
 def bubble_sort(dataset):
-    for x in range(len(dataset) - 1, 0, -1):
-        for y in range(x):
-            if dataset[y] > dataset[y + 1]:
-                temp = dataset[y]
-                dataset[y] = dataset[y + 1]
-                dataset[y + 1] = temp
-        print(f'Dataset: {dataset}')
+    for i in range(len(dataset) - 1, 0, -1):
+        for j in range(i):
+            if dataset[j] > dataset[j + 1]:
+                dataset[j], dataset[j + 1] = dataset[j + 1], dataset[j]
+    return dataset 
 
 # Merge sort
 def merge_sort(dataset):
