@@ -1,0 +1,18 @@
+# Python cache
+__pycache__/
+
+# IDE settings
+.vscode/
+
+# Image files
+*.png
+*.jpg
+*.jpeg
+
+# Environment files
+.env
+
+# Directories
+/code/
+/exe/
+
