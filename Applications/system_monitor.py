@@ -26,7 +26,8 @@ class SystemMonitor(QMainWindow):
         network_usage = psutil.net_io_counters()
         self.last_upload = network_usage.bytes_sent / 1024
         self.last_download = network_usage.bytes_recv / 1024
-        self.max_network_rate = 1
+        self.max_upload_rate = 1
+        self.max_download_rate = 1
 
         self.app = app
         self.is_movable = True
@@ -204,10 +205,11 @@ class SystemMonitor(QMainWindow):
         self.last_upload = network.bytes_sent / 1024
         self.last_download = network.bytes_recv / 1024
 
-        self.max_network_rate = max(self.max_network_rate, upload, download)
+        self.max_upload_rate = max(self.max_upload_rate, upload)
+        self.max_download_rate = max(self.max_download_rate, download)
 
-        upload_percentage = int(upload / self.max_network_rate * 100)
-        download_percentage = int(download / self.max_network_rate * 100)
+        upload_percentage = int(upload / self.max_upload_rate * 100)
+        download_percentage = int(download / self.max_download_rate * 100)
 
         self.label_network.setText(f"Net: ↑ {upload:.2f}KB/s ↓ {download:.2f}KB/s")
         self.progress_bar_upload.setValue(upload_percentage)
