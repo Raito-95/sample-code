@@ -8,36 +8,36 @@ class ImageProcessor(object):
         self.show = show
 
     def ESF(self):
-        self.X = self.image[self.image.shape[0]//2,:]
-        mu = np.sum(self.X) / self.X.shape[0]  # 計算平均值
+        self.X = self.image[self.image.shape[0]//2,:]  # Take the middle row of the image
+        mu = np.sum(self.X) / self.X.shape[0]  # Calculate the mean
         tmp = (self.X[:] - mu) ** 2
-        sigma = np.sqrt(np.sum(tmp) / self.X.shape[0])  # 計算標準差
-        self.edge_function = (self.X[:] - mu) / sigma  # 計算邊緣強度函數
-        self.edge_function = self.edge_function[::3]  # 每3個取樣一次
+        sigma = np.sqrt(np.sum(tmp) / self.X.shape[0])  # Calculate the standard deviation
+        self.edge_function = (self.X[:] - mu) / sigma  # Calculate the edge spread function (ESF)
+        self.edge_function = self.edge_function[::3]  # Downsample by taking every third sample
 
     def LSF(self):
-        self.ESF()  # 計算邊緣強度函數
-        self.lsf = self.edge_function[:-2] - self.edge_function[2:]  # 計算線狀線態函數（Line Spread Function）
+        self.ESF()  # Calculate the edge spread function
+        self.lsf = self.edge_function[:-2] - self.edge_function[2:]  # Calculate the line spread function (LSF)
 
     def MTF(self):
-        self.LSF()  # 計算線狀線態函數
-        self.mtf = abs(np.fft.fft(self.lsf))  # 計算幅頻響應（MTF）
-        self.mtf = self.mtf[:]/np.max(self.mtf)  # 正規化 MTF
-        self.mtf = self.mtf[:len(self.mtf)//2]  # 只保留一半的 MTF 頻譜
-        ix = np.arange(self.mtf.shape[0]) / (self.mtf.shape[0])  # 頻率軸
-        spline = UnivariateSpline(ix, self.mtf, s=0)  # 使用樣條函數進行光滑處理
+        self.LSF()  # Calculate the line spread function
+        self.mtf = abs(np.fft.fft(self.lsf))  # Calculate the modulation transfer function (MTF)
+        self.mtf = self.mtf[:]/np.max(self.mtf)  # Normalize the MTF
+        self.mtf = self.mtf[:len(self.mtf)//2]  # Keep only half of the MTF spectrum
+        ix = np.arange(self.mtf.shape[0]) / (self.mtf.shape[0])  # Frequency axis
+        spline = UnivariateSpline(ix, self.mtf, s=0)  # Smooth the MTF using a spline function
         mtf_fit = spline(ix)
 
         if self.show:
             fig, axs = plt.subplots(1, 2, figsize=(12, 6))
             axs[0].imshow(self.image, cmap='gray')
-            axs[0].set_title('灰度图像')
+            axs[0].set_title('Grayscale Image')
             axs[1].set_title("MTF")
-            axs[1].set_xlabel(r'频率 $[cycles/pixel]$')
+            axs[1].set_xlabel(r'Frequency $[cycles/pixel]$')
             axs[1].set_ylabel('MTF')
             p, = axs[1].plot(ix, self.mtf, '-or')
             ll, = axs[1].plot(ix, mtf_fit)
-            axs[1].legend([p, ll], ["MTF 值", "樣條適配"])
+            axs[1].legend([p, ll], ["MTF Values", "Spline Fit"])
             axs[1].grid()
             plt.tight_layout()
             plt.show()

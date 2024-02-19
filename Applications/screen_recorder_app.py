@@ -62,7 +62,7 @@ class ScreenRecorderApp:
             messagebox.showwarning("Warning", "Recording area is not set correctly.")
             return
 
-        fourcc = cv2.VideoWriter_fourcc(*"XVID") # type: ignore
+        fourcc = cv2.VideoWriter_fourcc(*"XVID")
         self.video_writer = cv2.VideoWriter(self.output_filename, fourcc, 30.0, (self.rect[2] - self.rect[0], self.rect[3] - self.rect[1]))
 
         self.recording = True
