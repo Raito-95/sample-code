@@ -1,15 +1,15 @@
-import sys
 import os
+import sys
 import psutil
 import GPUtil
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QSystemTrayIcon, QMenu, QAction, QDesktopWidget, QPushButton, QStyle
-from PyQt5.QtGui import QIcon, QMouseEvent, QPainter, QPen, QColor, QPainterPath
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QDesktopWidget, QPushButton, QStyle
+from PyQt5.QtGui import QMouseEvent, QPainter, QPen, QColor, QPainterPath
 from PyQt5.QtCore import QTimer, Qt, QPoint
 
 class LineGraphWidget(QWidget):
     def __init__(self, parent=None, line_color=QColor(5, 184, 204)):
         super(LineGraphWidget, self).__init__(parent)
-        self.usage_data = [0] * 100  # Initialize with 100 data points
+        self.usage_data = []  # Initialize as an empty list
         self.line_color = line_color
 
     def paintEvent(self, event):
@@ -20,13 +20,20 @@ class LineGraphWidget(QWidget):
         # Draw background
         painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 50))
 
+        # Find the maximum value in the data set, ensuring it's at least 1
+        max_value = max(self.usage_data, default=1)
+
+        # Function to scale the height relative to the max value
+        def scaled_height(value):
+            return h - (value * h / max_value)
+
         # Create a path for the line graph
         path = QPainterPath()
         if len(self.usage_data) > 1:
             step = w / (len(self.usage_data) - 1)
-            path.moveTo(0, h - self.usage_data[0] * h / 100)
+            path.moveTo(0, scaled_height(self.usage_data[0]))
             for i in range(1, len(self.usage_data)):
-                path.lineTo(int(i * step), int(h - self.usage_data[i] * h / 100))
+                path.lineTo(int(i * step), scaled_height(self.usage_data[i]))
 
         # Draw the filled area under the line
         fill_path = QPainterPath(path)
@@ -40,75 +47,35 @@ class LineGraphWidget(QWidget):
         painter.drawPath(path)
 
     def update_usage(self, usage):
-        self.usage_data.pop(0)
         self.usage_data.append(usage)
-        self.update()  # Trigger a repaint
-
-class NetworkGraphWidget(QWidget):
-    def __init__(self, parent=None):
-        super(NetworkGraphWidget, self).__init__(parent)
-        self.upload_data = [0] * 100
-        self.download_data = [0] * 100
-        self.upload_line_color = QColor(255, 120, 50)  # Orange for upload
-        self.download_line_color = QColor(150, 50, 200)  # Purple for download
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        w, h = self.width(), self.height()
-
-        # Draw background
-        painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 50))
-
-        # Calculate the maximum value for upload and download
-        max_value = max(*self.upload_data, *self.download_data)
-        if max_value == 0:
-            max_value = 1  # Avoid division by zero
-
-        # Draw the upload graph (dashed line)
-        if len(self.upload_data) > 1:
-            step = w / (len(self.upload_data) - 1)
-            pen = QPen(self.upload_line_color, 3)  # Increase the line width to 3
-            pen.setStyle(Qt.CustomDashLine)
-            pen.setDashPattern([6, 4])  # Increase the length of dashes and gaps
-            painter.setPen(pen)
-            for i in range(1, len(self.upload_data)):
-                painter.drawLine(
-                    int((i - 1) * step), int(h - self.upload_data[i - 1] * h / max_value),
-                    int(i * step), int(h - self.upload_data[i] * h / max_value)
-                )
-
-        # Draw the download graph (solid line)
-        if len(self.download_data) > 1:
-            step = w / (len(self.download_data) - 1)
-            painter.setPen(QPen(self.download_line_color, 2))
-            for i in range(1, len(self.download_data)):
-                painter.drawLine(
-                    int((i - 1) * step), int(h - self.download_data[i - 1] * h / max_value),
-                    int(i * step), int(h - self.download_data[i] * h / max_value)
-                )
-
-    def update_usage(self, upload_diff, download_diff):
-        # Shift data to the right and insert new values at the beginning
-        self.upload_data.pop()
-        self.upload_data.insert(0, upload_diff)
-
-        self.download_data.pop()
-        self.download_data.insert(0, download_diff)
-
+        if len(self.usage_data) > 100:
+            self.usage_data.pop(0)
         self.update()  # Trigger a repaint
 
 class SystemMonitor(QMainWindow):
     def __init__(self, app):
         super().__init__()
-        self.app = app
-        self.is_movable = True
-        self.old_pos = None
+        self.label_network = None
+        self.label_cpu = None
+        self.label_gpu = None
+        self.label_mem = None
+        self.label_disk = []
+        
+        self.upload_graph = None
+        self.download_graph = None
+        self.cpu_graph = None
+        self.gpu_graph = None
+        self.memory_graph = None
+        self.disk_graphs = []
+
         network_usage = psutil.net_io_counters()
         self.last_upload = network_usage.bytes_sent / 1024
         self.last_download = network_usage.bytes_recv / 1024
+
+        self.app = app
+        self.is_movable = True
+        self.old_pos = None
         self.init_ui()
-        self.init_system_tray()
         self.init_widgets()
         self.init_timers()
         self.set_geometry_to_bottom()
@@ -142,70 +109,63 @@ class SystemMonitor(QMainWindow):
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self.old_pos = event.globalPos()
 
-    def init_system_tray(self):
-        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test.png')
-        self.tray_icon = QSystemTrayIcon(QIcon(icon_path), self)
-        tray_menu = QMenu()
-        tray_menu.addAction(QAction("Show", self, triggered=self.show))
-        tray_menu.addAction(QAction("Hide", self, triggered=self.hide))
-        tray_menu.addAction(QAction("Quit", self, triggered=self.app.quit))
-        self.tray_icon.setContextMenu(tray_menu)
-        self.tray_icon.show()
-
     def init_widgets(self):
         self.central_widget = QWidget(self)
         self.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout(self.central_widget)
         self.layout.setContentsMargins(10, 40, 10, 10)
 
-        # Network usage label
-        self.label_network = QLabel(self.central_widget)
-        self.label_network.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.label_network.setStyleSheet("color: white; background-color: transparent;")
+        self.init_network_widget()
+        self.init_cpu_widget()
+        self.init_gpu_widget()
+        self.init_memory_widget()
+        self.init_disk_widgets()
+        self.pin_button.raise_()
+
+    def init_network_widget(self):
+        self.label_network = self.create_label()
         self.layout.addWidget(self.label_network)
 
-        # Network usage graph
-        self.network_graph = NetworkGraphWidget(self.central_widget)
-        self.layout.addWidget(self.network_graph)
+        self.upload_graph = LineGraphWidget(self.central_widget, line_color=QColor(255, 120, 50))  # Orange for upload
+        self.download_graph = LineGraphWidget(self.central_widget, line_color=QColor(150, 50, 200))  # Purple for download
+        self.layout.addWidget(self.upload_graph)
+        self.layout.addWidget(self.download_graph)
 
-        # CPU usage line graph widget
-        self.label_cpu = QLabel("CPU Usage", self.central_widget)
-        self.label_cpu.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.label_cpu.setStyleSheet("color: white; background-color: transparent;")
+    def init_cpu_widget(self):
+        self.label_cpu = self.create_label()
         self.layout.addWidget(self.label_cpu)
         self.cpu_graph = LineGraphWidget(self.central_widget)
         self.layout.addWidget(self.cpu_graph)
 
-        # GPU usage line graph widget
-        self.label_gpu = QLabel("GPU Usage", self.central_widget)
-        self.label_gpu.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.label_gpu.setStyleSheet("color: white; background-color: transparent;")
+    def init_gpu_widget(self):
+        self.label_gpu = self.create_label()
         self.layout.addWidget(self.label_gpu)
         self.gpu_graph = LineGraphWidget(self.central_widget)
         self.layout.addWidget(self.gpu_graph)
 
-        # Memory usage line graph widget
-        self.label_mem = QLabel("Memory Usage", self.central_widget)
-        self.label_mem.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.label_mem.setStyleSheet("color: white; background-color: transparent;")
+    def init_memory_widget(self):
+        self.label_mem = self.create_label()
         self.layout.addWidget(self.label_mem)
         self.memory_graph = LineGraphWidget(self.central_widget)
         self.layout.addWidget(self.memory_graph)
 
-        # Disk usage line graph widget
-        self.disk_labels = []
+    def init_disk_widgets(self):
+        self.label_disk = []
         self.disk_graphs = []
         for partition in psutil.disk_partitions():
-            if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint,os.R_OK):
-                label = QLabel(f"Disk {len(self.disk_labels) + 1} Usage", self.central_widget)
-                label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-                label.setStyleSheet("color: white; background-color: transparent;")
-                self.disk_labels.append(label)
+            if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
+                label = self.create_label()
+                self.label_disk.append(label)
                 self.layout.addWidget(label)
                 graph = LineGraphWidget(self.central_widget)
                 self.disk_graphs.append(graph)
                 self.layout.addWidget(graph)
-        self.pin_button.raise_()
+
+    def create_label(self):
+        label = QLabel(self.central_widget)
+        label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        label.setStyleSheet("color: white; background-color: transparent;")
+        return label
 
     def init_timers(self):
         # Update the network information
@@ -216,22 +176,22 @@ class SystemMonitor(QMainWindow):
         # Update the CPU information
         self.cpu_timer = QTimer(self)
         self.cpu_timer.timeout.connect(self.update_cpu_info)
-        self.cpu_timer.start(1000)
+        self.cpu_timer.start(3000)
 
         # Update the GPU information
         self.gpu_timer = QTimer(self)
         self.gpu_timer.timeout.connect(self.update_gpu_info)
-        self.gpu_timer.start(1000)
+        self.gpu_timer.start(4000)
 
         # Update the memory information
         self.memory_timer = QTimer(self)
         self.memory_timer.timeout.connect(self.update_memory_info)
-        self.memory_timer.start(1000)
+        self.memory_timer.start(5000)
 
         # Update the disk information
         self.disk_timer = QTimer(self)
         self.disk_timer.timeout.connect(self.update_disk_info)
-        self.disk_timer.start(1000)
+        self.disk_timer.start(10000)
 
     def update_network_info(self):
         network_usage = psutil.net_io_counters()
@@ -245,7 +205,8 @@ class SystemMonitor(QMainWindow):
         self.last_download = download
 
         self.label_network.setText(f"Net: ↑ {upload_diff:.2f} KB/s ↓ {download_diff:.2f} KB/s")
-        self.network_graph.update_usage(upload_diff, download_diff)
+        self.upload_graph.update_usage(upload_diff)
+        self.download_graph.update_usage(download_diff)
 
     def update_cpu_info(self):
         cpu_usage = psutil.cpu_percent()
@@ -275,7 +236,7 @@ class SystemMonitor(QMainWindow):
                 disk_usage_percent = disk_usage.percent
                 disk_total_gb = disk_usage.total / (1024 ** 3)
                 disk_used_gb = disk_usage.used / (1024 ** 3)
-                self.disk_labels[i].setText(f"Disk {i + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
+                self.label_disk[i].setText(f"Disk {i + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
                 self.disk_graphs[i].update_usage(disk_usage_percent)
 
     def set_geometry_to_bottom(self):
