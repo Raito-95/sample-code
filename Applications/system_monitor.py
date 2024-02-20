@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 import psutil
 import GPUtil
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QProgressBar, QDesktopWidget, QPushButton, QStyle
@@ -52,10 +52,28 @@ class SystemMonitor(QMainWindow):
         self.pin_button.clicked.connect(self.toggle_movable)
         self.pin_button.setGeometry(190, 10, 20, 20)
 
+    def toggle_movable(self):
+        self.is_movable = not self.is_movable
+        if self.is_movable:
+            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+            self.pin_button.setStyleSheet("background-color: green;")
+        else:
+            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogCancelButton))
+            self.pin_button.setStyleSheet("background-color: red;")
+
+    def mousePressEvent(self, event: QMouseEvent):
+        if self.is_movable and event.button() == Qt.LeftButton:
+            self.old_pos = event.globalPos()
+
+    def mouseMoveEvent(self, event: QMouseEvent):
+        if self.is_movable and self.old_pos is not None and event.buttons() == Qt.LeftButton:
+            delta = QPoint(event.globalPos() - self.old_pos)
+            self.move(self.x() + delta.x(), self.y() + delta.y())
+            self.old_pos = event.globalPos()
+
     def init_widgets(self):
         self.central_widget = QWidget(self)
         self.setCentralWidget(self.central_widget)
-
         self.layout = QVBoxLayout(self.central_widget)
         self.layout.setContentsMargins(10, 40, 10, 10)
 
@@ -65,7 +83,7 @@ class SystemMonitor(QMainWindow):
         self.init_memory_widget()
         self.init_disk_widgets()
         self.pin_button.raise_()
-        
+
     def init_timers(self):
         self.network_timer = QTimer(self)
         self.network_timer.timeout.connect(self.update_network_info)
@@ -86,25 +104,6 @@ class SystemMonitor(QMainWindow):
         self.disk_timer = QTimer(self)
         self.disk_timer.timeout.connect(self.update_disk_info)
         self.disk_timer.start(10000)
-
-    def toggle_movable(self):
-        self.is_movable = not self.is_movable
-        if self.is_movable:
-            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
-            self.pin_button.setStyleSheet("background-color: green;")
-        else:
-            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogCancelButton))
-            self.pin_button.setStyleSheet("background-color: red;")
-
-    def mousePressEvent(self, event: QMouseEvent):
-        if self.is_movable:
-            self.old_pos = event.globalPos()
-
-    def mouseMoveEvent(self, event: QMouseEvent):
-        if self.is_movable and self.old_pos is not None:
-            delta = QPoint(event.globalPos() - self.old_pos)
-            self.move(self.x() + delta.x(), self.y() + delta.y())
-            self.old_pos = event.globalPos()
 
     def init_network_widget(self):
         self.label_network = self.create_label()
@@ -208,10 +207,22 @@ class SystemMonitor(QMainWindow):
         self.max_upload_rate = max(self.max_upload_rate, upload)
         self.max_download_rate = max(self.max_download_rate, download)
 
-        upload_percentage = int(upload / self.max_upload_rate * 100)
-        download_percentage = int(download / self.max_download_rate * 100)
+        upload_percentage = int(upload / self.max_upload_rate * 100) if self.max_upload_rate > 0 else 0
+        download_percentage = int(download / self.max_download_rate * 100) if self.max_download_rate > 0 else 0
 
-        self.label_network.setText(f"Net: ↑ {upload:.2f}KB/s ↓ {download:.2f}KB/s")
+        if upload > 1024:
+            upload /= 1024
+            upload_unit = "MB/s"
+        else:
+            upload_unit = "KB/s"
+
+        if download > 1024:
+            download /= 1024
+            download_unit = "MB/s"
+        else:
+            download_unit = "KB/s"
+
+        self.label_network.setText(f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}")
         self.progress_bar_upload.setValue(upload_percentage)
         self.progress_bar_download.setValue(download_percentage)
 

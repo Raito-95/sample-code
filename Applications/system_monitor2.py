@@ -7,10 +7,11 @@ from PyQt5.QtGui import QMouseEvent, QPainter, QPen, QColor, QPainterPath
 from PyQt5.QtCore import QTimer, Qt, QPoint
 
 class LineGraphWidget(QWidget):
-    def __init__(self, parent=None, line_color=QColor(5, 184, 204)):
+    def __init__(self, parent=None, line_color=QColor(5, 184, 204), dynamic_max=False):
         super(LineGraphWidget, self).__init__(parent)
         self.usage_data = []  # Initialize as an empty list
         self.line_color = line_color
+        self.dynamic_max = dynamic_max  # Set whether to use dynamic max value
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -20,10 +21,8 @@ class LineGraphWidget(QWidget):
         # Draw background
         painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 50))
 
-        max_value = 1 
-        for value in self.usage_data:
-            if value > max_value:
-                max_value = value
+        # Determine the max value based on dynamic_max flag
+        max_value = max(self.usage_data) if self.dynamic_max and self.usage_data else 100
 
         # Function to scale the height relative to the max value
         def scaled_height(value):
@@ -62,7 +61,7 @@ class SystemMonitor(QMainWindow):
         self.label_gpu = None
         self.label_mem = None
         self.label_disk = []
-        
+
         self.upload_graph = None
         self.download_graph = None
         self.cpu_graph = None
@@ -98,8 +97,12 @@ class SystemMonitor(QMainWindow):
 
     def toggle_movable(self):
         self.is_movable = not self.is_movable
-        self.pin_button.setStyleSheet("background-color: green;" if self.is_movable else "background-color: red;")
-        self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton if self.is_movable else QStyle.SP_DialogCancelButton))
+        if self.is_movable:
+            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+            self.pin_button.setStyleSheet("background-color: green;")
+        else:
+            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogCancelButton))
+            self.pin_button.setStyleSheet("background-color: red;")
 
     def mousePressEvent(self, event: QMouseEvent):
         if self.is_movable and event.button() == Qt.LeftButton:
@@ -124,12 +127,33 @@ class SystemMonitor(QMainWindow):
         self.init_disk_widgets()
         self.pin_button.raise_()
 
+    def init_timers(self):
+        self.network_timer = QTimer(self)
+        self.network_timer.timeout.connect(self.update_network_info)
+        self.network_timer.start(1000)
+
+        self.cpu_timer = QTimer(self)
+        self.cpu_timer.timeout.connect(self.update_cpu_info)
+        self.cpu_timer.start(3000)
+
+        self.gpu_timer = QTimer(self)
+        self.gpu_timer.timeout.connect(self.update_gpu_info)
+        self.gpu_timer.start(4000)
+
+        self.memory_timer = QTimer(self)
+        self.memory_timer.timeout.connect(self.update_memory_info)
+        self.memory_timer.start(5000)
+
+        self.disk_timer = QTimer(self)
+        self.disk_timer.timeout.connect(self.update_disk_info)
+        self.disk_timer.start(10000)
+
     def init_network_widget(self):
         self.label_network = self.create_label()
         self.layout.addWidget(self.label_network)
 
-        self.upload_graph = LineGraphWidget(self.central_widget, line_color=QColor(255, 120, 50))  # Orange for upload
-        self.download_graph = LineGraphWidget(self.central_widget, line_color=QColor(150, 50, 200))  # Purple for download
+        self.upload_graph = LineGraphWidget(self.central_widget, line_color=QColor(255, 120, 50), dynamic_max=True)  # Orange for upload
+        self.download_graph = LineGraphWidget(self.central_widget, line_color=QColor(150, 50, 200), dynamic_max=True)  # Purple for download
         self.layout.addWidget(self.upload_graph)
         self.layout.addWidget(self.download_graph)
 
@@ -169,46 +193,29 @@ class SystemMonitor(QMainWindow):
         label.setStyleSheet("color: white; background-color: transparent;")
         return label
 
-    def init_timers(self):
-        # Update the network information
-        self.network_timer = QTimer(self)
-        self.network_timer.timeout.connect(self.update_network_info)
-        self.network_timer.start(1000)
-
-        # Update the CPU information
-        self.cpu_timer = QTimer(self)
-        self.cpu_timer.timeout.connect(self.update_cpu_info)
-        self.cpu_timer.start(3000)
-
-        # Update the GPU information
-        self.gpu_timer = QTimer(self)
-        self.gpu_timer.timeout.connect(self.update_gpu_info)
-        self.gpu_timer.start(4000)
-
-        # Update the memory information
-        self.memory_timer = QTimer(self)
-        self.memory_timer.timeout.connect(self.update_memory_info)
-        self.memory_timer.start(5000)
-
-        # Update the disk information
-        self.disk_timer = QTimer(self)
-        self.disk_timer.timeout.connect(self.update_disk_info)
-        self.disk_timer.start(10000)
-
     def update_network_info(self):
-        network_usage = psutil.net_io_counters()
-        upload = network_usage.bytes_sent / 1024
-        download = network_usage.bytes_recv / 1024
+        network = psutil.net_io_counters()
+        upload = (network.bytes_sent / 1024) - self.last_upload
+        download = (network.bytes_recv / 1024) - self.last_download
 
-        upload_diff = upload - self.last_upload
-        download_diff = download - self.last_download
+        self.last_upload = network.bytes_sent / 1024
+        self.last_download = network.bytes_recv / 1024
 
-        self.last_upload = upload
-        self.last_download = download
+        if upload > 1024:
+            upload /= 1024
+            upload_unit = "MB/s"
+        else:
+            upload_unit = "KB/s"
 
-        self.label_network.setText(f"Net: ↑ {upload_diff:.2f} KB/s ↓ {download_diff:.2f} KB/s")
-        self.upload_graph.update_usage(upload_diff)
-        self.download_graph.update_usage(download_diff)
+        if download > 1024:
+            download /= 1024
+            download_unit = "MB/s"
+        else:
+            download_unit = "KB/s"
+
+        self.label_network.setText(f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}")
+        self.upload_graph.update_usage(upload)
+        self.download_graph.update_usage(download)
 
     def update_cpu_info(self):
         cpu_usage = psutil.cpu_percent()
@@ -225,27 +232,26 @@ class SystemMonitor(QMainWindow):
 
     def update_memory_info(self):
         mem = psutil.virtual_memory()
-        memory_usage = mem.percent
+        mem_usage = mem.percent
         mem_used_gb = mem.used / 1024 / 1024 / 1024
         mem_total_gb = mem.total / 1024 / 1024 / 1024
-        self.label_mem.setText(f"Mem: {memory_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB")
-        self.memory_graph.update_usage(memory_usage)
+        self.label_mem.setText(f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB")
+        self.memory_graph.update_usage(mem_usage)
 
     def update_disk_info(self):
-        for i, partition in enumerate(psutil.disk_partitions()):
+        for index, partition in enumerate(psutil.disk_partitions()):
             if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
                 disk_usage = psutil.disk_usage(partition.mountpoint)
                 disk_usage_percent = disk_usage.percent
                 disk_total_gb = disk_usage.total / (1024 ** 3)
                 disk_used_gb = disk_usage.used / (1024 ** 3)
-                self.label_disk[i].setText(f"Disk {i + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
-                self.disk_graphs[i].update_usage(disk_usage_percent)
+                self.label_disk[index].setText(f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
+                self.disk_graphs[index].update_usage(disk_usage_percent)
 
     def set_geometry_to_bottom(self):
         desktop = QDesktopWidget()
         screen = desktop.availableGeometry(self)
-        window_height = self.height()
-        self.setGeometry(screen.width() - self.width(), screen.height() - window_height, self.width(), window_height)
+        self.setGeometry(screen.width() - self.width(), screen.height() - self.height(), self.width(), self.height())
 
 def main():
     app = QApplication(sys.argv)
