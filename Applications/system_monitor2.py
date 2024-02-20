@@ -20,8 +20,10 @@ class LineGraphWidget(QWidget):
         # Draw background
         painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 50))
 
-        # Find the maximum value in the data set, ensuring it's at least 1
-        max_value = max(self.usage_data, default=1)
+        max_value = 1 
+        for value in self.usage_data:
+            if value > max_value:
+                max_value = value
 
         # Function to scale the height relative to the max value
         def scaled_height(value):
