@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motion Sensor Demo</title>
+<style>
+  body {
+    font-family: 'Courier New', monospace; /* Use a monospaced font */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+  }
+  .data-container {
+    text-align: left;
+  }
+</style>
+</head>
+<body>
+<div class="data-container">
+  <h2>Accelerometer</h2>
+  <div id="accelerometer">Waiting for data...</div>
+  <h2>Acceleration(Gravity)</h2>
+  <div id="gravity">Waiting for data...</div>
+  <h2>Compass</h2>
+  <div id="compass">Waiting for data...</div>
+  <h2>Gyroscope</h2>
+  <div id="gyroscope">Waiting for data...</div>
+  <h2>Inclinometer</h2>
+  <div id="inclinometer">Waiting for data...</div>
+  <h2>Orientation</h2>
+  <div id="orientation">Waiting for data...</div>
+</div>
+
+<script>
+// Initialize variables for storing max and min values
+let sensorData = {
+  accelerometer: { max: { x: -Infinity, y: -Infinity, z: -Infinity }, min: { x: Infinity, y: Infinity, z: Infinity } },
+  gravitySensor: { max: { x: -Infinity, y: -Infinity, z: -Infinity }, min: { x: Infinity, y: Infinity, z: Infinity } },
+  gyroscope: { max: { x: -Infinity, y: -Infinity, z: -Infinity }, min: { x: Infinity, y: Infinity, z: Infinity } },
+  deviceOrientation: {
+    max: { compass: -Infinity, pitch: -Infinity, roll: -Infinity, yaw: -Infinity },
+    min: { compass: Infinity, pitch: Infinity, roll: Infinity, yaw: Infinity }
+  },
+  quaternion: {
+    max: { w: -Infinity, x: -Infinity, y: -Infinity, z: -Infinity },
+    min: { w: Infinity, x: Infinity, y: Infinity, z: Infinity }
+  }
+};
+
+// Function to convert Euler angles to a quaternion
+function eulerToQuaternion(alpha, beta, gamma) {
+  const degtorad = Math.PI / 180;
+  const x_rad = beta * degtorad; 
+  const y_rad = gamma * degtorad;
+  const z_rad = alpha * degtorad;
+
+  const cX = Math.cos(x_rad / 2);
+  const cY = Math.cos(y_rad / 2);
+  const cZ = Math.cos(z_rad / 2);
+  const sX = Math.sin(x_rad / 2);
+  const sY = Math.sin(y_rad / 2);
+  const sZ = Math.sin(z_rad / 2);
+
+  const w = cX * cY * cZ - sX * sY * sZ;
+  const x_quat = sX * cY * cZ + cX * sY * sZ;
+  const y_quat = cX * sY * cZ - sX * cY * sZ;
+  const z_quat = cX * cY * sZ + sX * sY * cZ;
+
+  return { w, x: x_quat, y: y_quat, z: z_quat };
+}
+
+// Function to update max and min values
+function updateMaxMinValues(sensorType, data) {
+  for (const [key, value] of Object.entries(data)) {
+    sensorData[sensorType].max[key] = Math.max(sensorData[sensorType].max[key], value);
+    sensorData[sensorType].min[key] = Math.min(sensorData[sensorType].min[key], value);
+  }
+}
+
+// Function to display sensor data
+function displaySensorData(sensorType, data, elementId) {
+  let displayText = '';
+  let unit = '';
+  let conversionFactor = 1; // Default conversion factor
+  switch (sensorType) {
+    case 'accelerometer':
+    case 'gravitySensor':
+      unit = ' g';
+      conversionFactor = 1 / 9.8; // Convert from m/s² to g
+      break;
+    case 'gyroscope':
+      unit = ' °/s';
+      break;
+    case 'deviceOrientation':
+      unit = '°';
+      break;
+  }
+  for (const [key, value] of Object.entries(data)) {
+    const convertedValue = value * conversionFactor;
+    const convertedMax = sensorData[sensorType].max[key] * conversionFactor;
+    const convertedMin = sensorData[sensorType].min[key] * conversionFactor;
+    displayText += `${key.toUpperCase()}: ${convertedValue.toFixed(2)}${unit} (Max: ${convertedMax.toFixed(2)}${unit}, Min: ${convertedMin.toFixed(2)}${unit})<br>`;
+  }
+  document.getElementById(elementId).innerHTML = displayText;
+}
+
+// Event listener for device orientation changes
+window.addEventListener('deviceorientation', (event) => {
+  const alpha = event.alpha;
+  const beta = event.beta;
+  const gamma = event.gamma;
+
+  // Update max and min values for compass, pitch, roll, and yaw
+  updateMaxMinValues('deviceOrientation', { compass: alpha, pitch: beta, roll: gamma, yaw: alpha });
+
+  // Display compass direction
+  displaySensorData('deviceOrientation', { compass: alpha }, 'compass');
+
+  // Convert Euler angles to quaternion
+  const quaternion = eulerToQuaternion(alpha, beta, gamma);
+  
+  // Update max and min values for quaternion components
+  updateMaxMinValues('quaternion', quaternion);
+
+  // Display quaternion data
+  displaySensorData('quaternion', quaternion, 'orientation');
+
+  // Display inclinometer data
+  displaySensorData('deviceOrientation', { pitch: beta, roll: gamma, yaw: alpha }, 'inclinometer');
+});
+
+// Function to initialize sensor and set event listener
+function initializeSensor(SensorType, sensorName, elementId) {
+  if (window[SensorType]) {
+    const sensor = new window[SensorType]({ frequency: 60 });
+    sensor.addEventListener('reading', () => {
+      const data = { x: sensor.x, y: sensor.y, z: sensor.z };
+      updateMaxMinValues(sensorName, data);
+      displaySensorData(sensorName, data, elementId);
+    });
+    sensor.start();
+  }
+}
+
+// Initialize sensors
+initializeSensor('Accelerometer', 'accelerometer', 'accelerometer');
+initializeSensor('GravitySensor', 'gravitySensor', 'gravity');
+initializeSensor('Gyroscope', 'gyroscope', 'gyroscope');
+</script>
+
+</body>
+</html>
