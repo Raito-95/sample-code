@@ -42,7 +42,7 @@ class SerialReader:
                             callback()
             except serial.SerialException as e:
                 self.stop_reading()
-                callback(e)
+                print(f"Serial exception occurred: {e}")
 
     def add_pattern(self, pattern):
         re.compile(pattern)
