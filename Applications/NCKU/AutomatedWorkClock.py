@@ -2,6 +2,7 @@ import os
 import json
 import time
 import random
+import logging
 from datetime import datetime, timedelta
 import requests
 from selenium import webdriver
@@ -14,10 +15,23 @@ from selenium.common.exceptions import TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 import holidays
 
+# Initialize logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 # Define the path to the JSON file containing configuration settings
 json_file_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
 # Initialize holidays for Taiwan
 tw_holidays = holidays.Taiwan()
+
+def validate_config(config):
+    """Validate the configuration settings."""
+    required_keys = ['psn_code', 'password', 'line_notify_token', 'sign_in_minute_start', 'sign_in_minute_end']
+    for key in required_keys:
+        if key not in config:
+            raise ValueError(f"Missing '{key}' in configuration.")
+
+    if not (0 <= config['sign_in_minute_start'] < config['sign_in_minute_end'] <= 60):
+        raise ValueError("Invalid sign-in minute range in configuration.")
 
 def is_holiday(date):
     """Check if the given date is a holiday in Taiwan."""
@@ -82,6 +96,8 @@ def send_line_notify(token, message):
     }
     data = {"message": message}
     response = requests.post("https://notify-api.line.me/api/notify", headers=headers, data=data, timeout=10)
+    if response.status_code != 200:
+        logging.error("Failed to send LINE Notify message: %s", response.text)
     return response.status_code == 200
 
 def format_records(records, sign_type):
@@ -111,23 +127,44 @@ def perform_sign_in_out(driver, config, sign_type):
 def handle_sign_in_out(config):
     """Handles the sign-in and sign-out process based on the current time and workday schedule."""
     current_time = datetime.now()
-    work_start_time = datetime.strptime("08:30", "%H:%M").time()
-    work_end_time = datetime.strptime("17:30", "%H:%M").time()
+    sign_in_hour = 8
 
-    if work_start_time <= current_time.time() <= work_end_time:
+    # Calculate sign-in and sign-out times for today
+    today_sign_in_time = datetime(current_time.year, current_time.month, current_time.day, sign_in_hour, config['sign_in_minute_start'])
+    today_sign_out_time = today_sign_in_time + timedelta(hours=9, minutes=5)
+
+    # If the current time is before today's sign-in time, wait until sign-in time
+    if current_time < today_sign_in_time:
+        while datetime.now() < today_sign_in_time:
+            time.sleep(60)
+        driver = setup_driver()
+        login(driver, config['psn_code'], config['password'])
+        perform_sign_in_out(driver, config, "sign_in")
+        driver.quit()
+
+        # Wait until sign-out time
+        while datetime.now() < today_sign_out_time:
+            time.sleep(60)
+        driver = setup_driver()
+        login(driver, config['psn_code'], config['password'])
+        perform_sign_in_out(driver, config, "sign_out")
+        driver.quit()
+
+    # If the current time is during work hours, prompt for sign-in time and wait until sign-out
+    elif today_sign_in_time <= current_time < today_sign_out_time:
         while True:
-            sign_in_time_input = input("請輸入上班時間(格式:HH:MM): ")
+            sign_in_minute_input = input("請輸入上班時間的分鐘數(格式:MM): ")
             try:
-                sign_in_time = datetime.strptime(sign_in_time_input, "%H:%M").time()
-                if datetime.strptime("08:00", "%H:%M").time() <= sign_in_time <= datetime.strptime("08:25", "%H:%M").time():
+                sign_in_minute = int(sign_in_minute_input)
+                if config['sign_in_minute_start'] <= sign_in_minute < config['sign_in_minute_end']:
                     print("已輸入有效的上班時間，程式現在將進入等待狀態，直到簽退時間。")
                     break
                 else:
-                    print("請輸入8:00到8:25之間的時間")
+                    print(f"請輸入{config['sign_in_minute_start']}到{config['sign_in_minute_end'] - 1}之間的分鐘數")
             except ValueError:
-                print("時間格式不正確，請重新輸入。")
+                print("分鐘數格式不正確，請重新輸入。")
 
-        sign_in_datetime = current_time.replace(hour=sign_in_time.hour, minute=sign_in_time.minute, second=0, microsecond=0)
+        sign_in_datetime = current_time.replace(minute=sign_in_minute, second=0, microsecond=0)
         sign_out_time = sign_in_datetime + timedelta(hours=9, minutes=5)
 
         while datetime.now() < sign_out_time:
@@ -137,11 +174,12 @@ def handle_sign_in_out(config):
         perform_sign_in_out(driver, config, "sign_out")
         driver.quit()
 
+    # Handle automatic sign-in and sign-out for future days
     while True:
         next_workday = current_time + timedelta(days=1)
         while next_workday.weekday() in [5, 6] or is_holiday(next_workday.date()):
             next_workday += timedelta(days=1)
-        sign_in_time = next_workday.replace(hour=8, minute=random.randint(0, 25), second=0, microsecond=0)
+        sign_in_time = next_workday.replace(hour=sign_in_hour, minute=random.randint(config['sign_in_minute_start'], config['sign_in_minute_end'] - 1), second=0, microsecond=0)
         sign_out_time = sign_in_time + timedelta(hours=9, minutes=5)
 
         while datetime.now() < sign_in_time:
@@ -161,8 +199,13 @@ def handle_sign_in_out(config):
 
 def main():
     """Main function to read configuration and start the sign-in and sign-out process."""
-    with open(json_file_path, 'r', encoding="utf-8") as file:
-        config = json.load(file)
+    try:
+        with open(json_file_path, 'r', encoding="utf-8") as file:
+            config = json.load(file)
+        validate_config(config)
+    except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+        logging.error("Error reading or validating configuration: %s", e)
+        return
 
     handle_sign_in_out(config)
 
