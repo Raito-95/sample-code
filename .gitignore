@@ -21,3 +21,4 @@ dist
 *.spec
 
 _credentials.json
+*.bat

@@ -1,3 +1,4 @@
 selenium==3.141.0
 requests==2.25.1
 webdriver-manager==3.5.2
+holidays==0.44

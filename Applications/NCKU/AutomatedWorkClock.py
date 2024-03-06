@@ -2,6 +2,7 @@ import os
 import json
 import time
 import random
+import holidays
 from datetime import datetime, timedelta
 import requests
 from selenium import webdriver
@@ -14,6 +15,11 @@ from selenium.common.exceptions import TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 
 json_file_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
+
+tw_holidays = holidays.Taiwan()
+
+def is_holiday(date):
+    return date in tw_holidays
 
 def setup_driver():
     """
@@ -191,7 +197,8 @@ def handle_automatic_sign_in_out(config):
     sign_out_time = sign_in_time + timedelta(hours=9, minutes=5)
 
     # Skip Saturdays and Sundays
-    if sign_in_time.weekday() in [5, 6]:
+    if sign_in_time.weekday() in [5, 6] or is_holiday(sign_in_time.date()):
+        time.sleep(60 * 60)  # Wait for 1 hour
         return
 
     # Perform the sign-in operation at the sign-in time
