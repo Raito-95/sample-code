@@ -30,7 +30,7 @@ def validate_config(config):
         if key not in config:
             raise ValueError(f"Missing '{key}' in configuration.")
 
-    if not (0 <= config['sign_in_minute_start'] < config['sign_in_minute_end'] <= 60):
+    if not (0 <= config['sign_in_minute_start'] < config['sign_in_minute_end'] <= 20):
         raise ValueError("Invalid sign-in minute range in configuration.")
 
 def is_holiday(date):
@@ -129,29 +129,45 @@ def handle_sign_in_out(config):
     current_time = datetime.now()
     sign_in_hour = 8
 
-    # Calculate sign-in and sign-out times for today
-    today_sign_in_time = datetime(current_time.year, current_time.month, current_time.day, sign_in_hour, config['sign_in_minute_start'])
-    today_sign_out_time = today_sign_in_time + timedelta(hours=9, minutes=5)
+    # Calculate sign-in and sign-out times for default
+    default_sign_in_time = datetime(current_time.year, current_time.month, current_time.day, sign_in_hour, config['sign_in_minute_start'])
+    default_sign_out_time = default_sign_in_time + timedelta(hours=9, minutes=5)
+
+    print(f"上班時間: {default_sign_in_time}")
+    print(f"下班時間: {default_sign_out_time}")
 
     # If the current time is before today's sign-in time, wait until sign-in time
-    if current_time < today_sign_in_time:
-        while datetime.now() < today_sign_in_time:
+    if current_time < default_sign_in_time:
+        print("當前時間早於上班時間，等待中...")
+        while datetime.now() < default_sign_in_time:
             time.sleep(60)
+        print("已到達上班時間，進行簽到...")
         driver = setup_driver()
+        print("瀏覽器驅動初始化完成。")
         login(driver, config['psn_code'], config['password'])
+        print("登入成功。")
         perform_sign_in_out(driver, config, "sign_in")
+        print(f"簽到操作完成，實際簽到時間: {datetime.now()}")
         driver.quit()
+        print("瀏覽器已關閉。")
 
         # Wait until sign-out time
-        while datetime.now() < today_sign_out_time:
+        print("等待簽退時間...")
+        while datetime.now() < default_sign_out_time:
             time.sleep(60)
+        print("已到達簽退時間，進行簽退...")
         driver = setup_driver()
+        print("瀏覽器驅動初始化完成。")
         login(driver, config['psn_code'], config['password'])
+        print("登入成功。")
         perform_sign_in_out(driver, config, "sign_out")
+        print(f"簽退操作完成，實際簽退時間: {datetime.now()}")
         driver.quit()
+        print("瀏覽器已關閉。")
 
     # If the current time is during work hours, prompt for sign-in time and wait until sign-out
-    elif today_sign_in_time <= current_time < today_sign_out_time:
+    elif default_sign_in_time <= current_time < default_sign_out_time:
+        print("當前時間在上班時間範圍內，等待輸入上班時間...")
         while True:
             sign_in_minute_input = input("請輸入上班時間的分鐘數(格式:MM): ")
             try:
@@ -164,15 +180,24 @@ def handle_sign_in_out(config):
             except ValueError:
                 print("分鐘數格式不正確，請重新輸入。")
 
-        sign_in_datetime = current_time.replace(minute=sign_in_minute, second=0, microsecond=0)
+        sign_in_datetime = current_time.replace(hour=sign_in_hour, minute=sign_in_minute, second=0, microsecond=0)
         sign_out_time = sign_in_datetime + timedelta(hours=9, minutes=5)
 
+        print(f"今日上班時間: {sign_in_datetime}")
+        print(f"今日下班時間: {sign_out_time}")
+
+        print("等待簽退時間...")
         while datetime.now() < sign_out_time:
             time.sleep(60)
+        print("已到達簽退時間，進行簽退...")
         driver = setup_driver()
+        print("瀏覽器驅動初始化完成。")
         login(driver, config['psn_code'], config['password'])
+        print("登入成功。")
         perform_sign_in_out(driver, config, "sign_out")
+        print(f"簽退操作完成，實際簽退時間: {datetime.now()}")
         driver.quit()
+        print("瀏覽器已關閉。")
 
     # Handle automatic sign-in and sign-out for future days
     while True:
@@ -181,21 +206,37 @@ def handle_sign_in_out(config):
             next_workday += timedelta(days=1)
         sign_in_time = next_workday.replace(hour=sign_in_hour, minute=random.randint(config['sign_in_minute_start'], config['sign_in_minute_end'] - 1), second=0, microsecond=0)
         sign_out_time = sign_in_time + timedelta(hours=9, minutes=5)
+        
+        print(f"下一個工作日上班時間: {sign_in_time}")
+        print(f"下一個工作日下班時間: {sign_out_time}")
 
+        print("等待簽到時間...")
         while datetime.now() < sign_in_time:
             time.sleep(60)
+        print("已到達上班時間，進行簽到...")
         driver = setup_driver()
+        print("瀏覽器驅動初始化完成。")
         login(driver, config['psn_code'], config['password'])
+        print("登入成功。")
         perform_sign_in_out(driver, config, "sign_in")
+        print(f"簽到操作完成，實際簽到時間: {datetime.now()}")
         driver.quit()
+        print("瀏覽器已關閉。")
 
+        print("等待簽退時間...")
         while datetime.now() < sign_out_time:
             time.sleep(60)
+        print("已到達簽退時間，進行簽退...")
         driver = setup_driver()
+        print("瀏覽器驅動初始化完成。")
         login(driver, config['psn_code'], config['password'])
+        print("登入成功。")
         perform_sign_in_out(driver, config, "sign_out")
+        print(f"簽退操作完成，實際簽退時間: {datetime.now()}")
         driver.quit()
+        print("瀏覽器已關閉。")
         current_time = datetime.now()
+        print("------------------------------")
 
 def main():
     """Main function to read configuration and start the sign-in and sign-out process."""
