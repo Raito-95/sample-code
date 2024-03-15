@@ -1,115 +1,169 @@
+import tkinter as tk
 import pyautogui
 import time
-import keyboard
 import json
+import threading
+import keyboard
+from pynput.mouse import Listener as MouseListener
 
 class MouseRecorder:
     def __init__(self):
+        """
+        Initializes the MouseRecorder with the required attributes and starts the mouse listener.
+        """
         self.events = []
         self.recording = False
+        self.playing = False
         self.paused = False
+        self.root = tk.Tk()
+        self.root.overrideredirect(True)
+        self.root.attributes('-topmost', True)
+        self.label = tk.Label(self.root, text="Press F1 to start/pause recording, F2 to stop, F3 to play/pause")
+        self.label.pack()
+
+        self.loop_playback_var = tk.BooleanVar()
+        self.loop_playback_check = tk.Checkbutton(self.root, text="Loop playback", variable=self.loop_playback_var)
+        self.loop_playback_check.pack()
+
+        keyboard.add_hotkey('F1', self.toggle_recording_or_pause)
+        keyboard.add_hotkey('F2', self.stop_recording)
+        keyboard.add_hotkey('F3', self.toggle_playback)
+
+        self.mouse_listener = MouseListener(on_click=self.on_click)
+        self.mouse_listener.start()
+
+    def on_click(self, x, y, button, pressed):
+        """
+        Callback function for mouse click events.
+
+        :param x: X coordinate of the mouse click.
+        :param y: Y coordinate of the mouse click.
+        :param button: The button that was clicked.
+        :param pressed: Boolean indicating whether the button was pressed or released.
+        """
+        if self.recording and not self.paused:
+            event_type = 'Click' if pressed else 'Release'
+            event = {'x': x, 'y': y, 'type': event_type, 'timestamp': time.time()}
+            self.events.append(event)
+
+    def toggle_recording_or_pause(self):
+        """
+        Toggles the recording state or pauses the recording.
+        """
+        if not self.recording:
+            self.recording = True
+            self.paused = False
+            self.label.config(text="Recording...")
+            self.events = []
+            self.record_mouse_events()
+        elif self.paused:
+            self.paused = False
+            self.label.config(text="Recording resumed")
+            self.record_mouse_events()
+        else:
+            self.paused = True
+            self.label.config(text="Recording paused")
 
     def record_mouse_events(self):
         """
-        Record mouse events.
-
-        Returns:
-            list: A list of dictionaries representing mouse events.
+        Records mouse movement events.
         """
-        self.events = []
-        self.recording = False
-        self.paused = False
-
-        while True:
-            if keyboard.is_pressed('F1') and not self.recording:
-                print("Recording started...")
-                self.recording = True
-            elif keyboard.is_pressed('F2'):
-                self.paused = not self.paused
-                if self.paused:
-                    print("Recording paused...")
-                else:
-                    print("Recording resumed...")
-                time.sleep(0.2)
-            elif keyboard.is_pressed('F3'):
-                if self.recording:
-                    print("Recording stopped.")
-                    break
-
-            if self.recording and not self.paused:
-                x, y = pyautogui.position()
-                event_type = 'Move'
-                if pyautogui.mouseDown():
-                    event_type = 'Click'
-
-                event = {'x': x, 'y': y, 'type': event_type, 'timestamp': time.time()}
-                self.events.append(event)
-
-            time.sleep(0.1)
-
-        return self.events
+        if self.recording and not self.paused:
+            x, y = pyautogui.position()
+            event = {'x': x, 'y': y, 'type': 'Move', 'timestamp': time.time()}
+            self.events.append(event)
+            self.root.after(100, self.record_mouse_events)
 
     def save_events_to_file(self, filename='mouse_events.json'):
         """
-        Save events to file.
+        Saves the recorded events to a JSON file.
 
-        Args:
-            filename (str): The name of the file to save events to. Default is 'mouse_events.json'.
+        :param filename: The name of the file to save the events to.
         """
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(self.events, f)
 
     def load_events_from_file(self, filename='mouse_events.json'):
         """
-        Load events from file.
+        Loads the recorded events from a JSON file.
 
-        Args:
-            filename (str): The name of the file to load events from. Default is 'mouse_events.json'.
-
-        Returns:
-            list: A list of dictionaries representing mouse events.
+        :param filename: The name of the file to load the events from.
         """
         try:
             with open(filename, 'r', encoding='utf-8') as f:
                 self.events = json.load(f)
-            return self.events
         except FileNotFoundError:
             print(f"File '{filename}' not found.")
-            return None
+            self.events = []
+
+    def stop_recording(self):
+        """
+        Stops the recording of mouse events and saves them to a file.
+        """
+        if self.recording:
+            self.recording = False
+            self.paused = False
+            self.label.config(text="Recording stopped.")
+            self.save_events_to_file()
+
+    def toggle_playback(self):
+        """
+        Toggles the playback of the recorded mouse events.
+        """
+        if not self.playing:
+            self.playing = True
+            self.paused = False
+            self.label.config(text="Playing...")
+            threading.Thread(target=self.play_recorded_events).start()
+        else:
+            self.paused = not self.paused
+            self.label.config(text="Playback paused." if self.paused else "Playing...")
 
     def play_recorded_events(self):
         """
-        Play recorded events.
+        Plays back the recorded mouse events.
         """
+        self.load_events_from_file()
         if not self.events:
             print("No events loaded.")
             return
 
-        start_time = self.events[0]['timestamp']
-        for event in self.events:
-            if event['type'] == 'Move':
-                pyautogui.moveTo(event['x'], event['y'], duration=0.1)
-            elif event['type'] == 'Click':
-                pyautogui.click()
+        while self.playing:
+            start_time = time.time()
+            initial_timestamp = self.events[0]['timestamp'] if self.events else 0
 
-            elapsed_time = event['timestamp'] - start_time
-            time.sleep(max(0, event['timestamp'] - time.time() - start_time))
+            for event in self.events:
+                if not self.playing or self.paused:
+                    continue
+
+                current_time = time.time()
+                elapsed_event_time = event['timestamp'] - initial_timestamp
+                target_time = start_time + elapsed_event_time
+
+                if event['type'] == 'Move':
+                    pyautogui.moveTo(event['x'], event['y'], duration=0.1)
+                    time.sleep(max(0, 0.05 - (time.time() - current_time)))
+                elif event['type'] in ['Click', 'Release']:
+                    if event['type'] == 'Click':
+                        pyautogui.mouseDown(x=event['x'], y=event['y'])
+                    else:
+                        pyautogui.mouseUp(x=event['x'], y=event['y'])
+
+                while time.time() < target_time:
+                    time.sleep(0.01)
+
+            if not self.loop_playback_var.get():
+                break
+
+        self.playing = False
+        self.label.config(text="Finished playing.")
+
+    def start(self):
+        """
+        Starts the main loop of the Tkinter GUI.
+        """
+        self.root.mainloop()
 
 # Main program
-print("Press F1 to start recording, F2 to pause/resume, F3 to stop recording...")
 recorder = MouseRecorder()
-events = recorder.record_mouse_events()
-
-if events:
-    recorder.save_events_to_file()
-    print("Recording saved to mouse_events.json.")
-
-print("Press F4 to play recorded events...")
-events = recorder.load_events_from_file()
-
-if events:
-    print("Press F5 to stop playing...")
-    while not keyboard.is_pressed('F5'):
-        if keyboard.is_pressed('F4'):
-            print("Playing recorded events...")
-            recorder.play_recorded_events()
+recorder.start()

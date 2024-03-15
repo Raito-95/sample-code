@@ -1,34 +1,34 @@
-# 滑鼠事件記錄器
+# Mouse Event Recorder
 
-## 簡介
+## Introduction
 
-這個程式是一個用於記錄滑鼠事件（包括移動和點擊）的工具。它可以幫助您記錄滑鼠在屏幕上的操作，並將這些操作保存到檔案中，以便日後回放。
+This program is a tool for recording mouse events, including movements and clicks. It allows you to capture the mouse's actions on the screen and save these actions to a file for later playback.
 
-## 功能
+## Features
 
-- 開始錄製：按下 F1 鍵開始記錄滑鼠事件。
-- 暫停/繼續錄製：按下 F2 鍵可以暫停或繼續錄製。
-- 終止錄製：按下 F3 鍵可以終止錄製，並將記錄的滑鼠事件保存到檔案中。
-- 播放已記錄的事件：按下 F4 鍵可以播放已記錄的滑鼠事件。
-- 停止播放：按下 F5 鍵可以停止播放。
+- **Start/Resume Recording**: Press the F1 key to start or resume recording mouse events.
+- **Pause Recording**: While recording, press F1 again to pause.
+- **Stop Recording**: Press the F2 key to stop recording and save the recorded mouse events to a file.
+- **Play/Pause Playback**: Press the F3 key to start or pause the playback of the recorded events.
+- **Loop Playback**: You can enable or disable looping playback using the checkbox provided in the application window.
 
-## 使用步驟
+## How to Use
 
-1. 開始錄製：
-   - 按下 F1 鍵開始記錄滑鼠事件。
-   - 按下 F2 鍵暫停或繼續錄製。
-   - 按下 F3 鍵終止錄製。
+1. **To Start Recording**:
+   - Press the F1 key to begin recording mouse events.
+   - To pause the recording, press F1 again.
+   - Press the F2 key to stop and save the recording.
 
-2. 儲存錄製的事件：
-   - 記錄完成後，滑鼠事件將保存到 `mouse_events.json` 檔案中。
+2. **To Save Recorded Events**:
+   - After stopping, the mouse events will be saved in the `mouse_events.json` file.
 
-3. 播放已記錄的事件：
-   - 按下 F4 鍵播放已記錄的滑鼠事件。
-   - 按下 F5 鍵停止播放。
+3. **To Play Recorded Events**:
+   - Press the F3 key to start or pause the playback of the recorded mouse events.
+   - Use the loop playback checkbox in the application window if you want the playback to loop continuously.
 
-## 注意事項
+## Notes
 
-- 請確保程式窗口保持在最前面，以確保按鍵事件被正確捕獲。
-- 播放滑鼠事件時，請不要移動滑鼠，以免干擾播放。
+- Ensure the program window remains at the forefront to capture the key events properly.
+- During playback of mouse events, avoid moving the mouse to prevent interference with the playback.
 
-這就是滑鼠事件記錄器的使用手冊。希望這個工具能夠幫助您記錄和回放滑鼠事件！
+This is the user manual for the Mouse Event Recorder. We hope this tool helps you in recording and replaying mouse events effectively!
