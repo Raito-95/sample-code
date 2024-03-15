@@ -49,13 +49,13 @@ class GradeSystemDriver:
 
     def load_data(self):
         if os.path.exists(self.file_path):
-            with open(self.file_path, 'r') as file:
+            with open(self.file_path, 'r', encoding="utf-8") as file:
                 for line in file:
                     self.grade_system.insert_grade(line.strip())
             print(f"已從 {self.file_path} 匯入成績資料")
 
     def save_data(self):
-        with open(self.file_path, 'w') as file:
+        with open(self.file_path, 'w', encoding="utf-8") as file:
             for student_no, subject_scores in self.grade_system.student_grade.items():
                 data = [f"{student_no} {subject} {score}" for subject, score in subject_scores.items()]
                 file.write(" ".join(data) + "\n")
@@ -90,7 +90,7 @@ class GradeSystemDriver:
                 except NoStudentException as e:
                     print(e)
             elif choice == '3':
-                student_data = input("請輸入學生學號及科目成績 (例如：97531 DS 80 DM 80 LA 80): ")
+                student_data = input("請輸入學生學號及科目成績 (例如:97531 DS 80 DM 80 LA 80): ")
                 self.grade_system.insert_grade(student_data)
                 print("新增成功!")
             elif choice == '4':

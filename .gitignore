@@ -13,6 +13,7 @@ __pycache__/
 .env
 
 # Directories
+/stream/
 /code/
 /exe/
 build

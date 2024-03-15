@@ -1,33 +1,36 @@
-# Import the socket module
 import socket
 
-# Define the server's hostname and port number
-HOST = ''
+HOST = 'localhost'  # 或 '127.0.0.1'
 PORT = 9999
 
-# Create a socket object
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def connect_to_server():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((HOST, PORT))
+        return s
+    except ConnectionRefusedError:
+        print("Connection refused. Make sure the server is running.")
+        return None
 
-# Connect to the server
-s.connect((HOST, PORT))
+def main():
+    s = connect_to_server()
+    if not s:
+        return
 
-# Print an empty line for better output formatting
-print()
+    while True:
+        try:
+            out_data = input("Enter data to send (type 'exit' to quit): ")
+            if out_data.lower() == 'exit':
+                break
 
-# Prepare the data to send
-out_data = '1'
+            s.send(out_data.encode())
+            in_data = s.recv(1024)
+            print('Received data:', in_data.decode())
+        except ConnectionError:
+            print("Connection to server lost.")
+            break
 
-# Print the data to be sent
-print('Sending data: ' + out_data)
+    s.close()
 
-# Encode and send the data to the server
-s.send(out_data.encode())
-
-# Receive data back from the server
-in_data = s.recv(1024)
-
-# Print the received data
-print('Received data: ' + in_data.decode())
-
-# Close the socket connection
-s.close()
+if __name__ == "__main__":
+    main()
