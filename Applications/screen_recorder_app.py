@@ -13,6 +13,7 @@ class ScreenRecorderApp:
         self.root.geometry("300x300")
         self.root.configure(bg="#f0f0f0")
 
+        self.rect_id = None
         button_font = ("Arial", 12)
         button_bg = "#e0e0e0"
         button_fg = "#333333"
