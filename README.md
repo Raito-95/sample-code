@@ -1,26 +1,34 @@
 # Sample Code Repository
 
-This repository, [sample-code](https://github.com/Raito-95/sample-code), is a diverse collection of code samples covering a range of topics in computer science and software development. It's designed to provide practical examples and to demonstrate various programming concepts and techniques.
+Welcome to the [sample-code](https://github.com/Raito-95/sample-code) repository! This diverse collection spans various topics in computer science and software development, offering practical examples to demonstrate programming concepts and techniques.
 
 ## Contents
 
-- **[Algorithms](https://github.com/Raito-95/sample-code/tree/main/Algorithms/)**: This section includes implementations of various algorithms, such as sorting algorithms, search algorithms, and others. Each algorithm is accompanied by a detailed explanation and examples.
+- **Algorithms**: Features a variety of algorithm implementations, including:
+  - Fibonacci sequence calculators (recursive and iterative methods).
+  - Search functions demonstrating linear and binary search techniques.
+  - Sorting algorithms showcasing bubble sort, merge sort, and quick sort, along with a recursive function example.
 
-- **[Applications](https://github.com/Raito-95/sample-code/tree/main/Applications/)**: Here, you'll find practical code samples and tools for everyday tasks and challenges in software development. This includes scripts for automation, data processing, and more.
+- **Applications**: Contains practical applications and scripts for automation and productivity, such as:
+  - An auto clicker script for simulating mouse clicks.
+  - A currency total calculator in JavaScript for aggregating amounts in different currencies.
+  - A game assistance tool for recording and playing back mouse events.
+  - Image processing scripts for cropping and enhancing images.
+  - Several other utility scripts for tasks like screen capturing and system monitoring.
 
-- **[Audio Processing](https://github.com/Raito-95/sample-code/tree/main/Audio%20Processing/)**: This section contains scripts for handling and processing audio data, demonstrating how to work with sound in your applications.
+- **Audio Processing**: Includes an audio recorder and visualizer script, demonstrating how to work with audio data in Python.
 
-- **[Data Structures](https://github.com/Raito-95/sample-code/tree/main/Data%20Structures/)**: Explore examples of various data structures, from basic ones like linked lists and stacks to more complex structures like trees and graphs.
+- **Data Structures**: Offers implementations of fundamental data structures, including binary search trees and linked lists, showcasing how to construct and manipulate complex data structures.
 
-- **[Networking and Communication](https://github.com/Raito-95/sample-code/tree/main/Networking%20and%20Communication/)**: This includes code related to network operations, protocols, and communication between systems or devices.
+- **Networking and Communication**: Contains a basic client socket example, illustrating simple network communication.
 
 ## Testing
 
-The repository includes a comprehensive suite of tests, ensuring the reliability and correctness of the code. We use `pytest`, a powerful testing tool in Python, to automate and manage our tests. This ensures that each script not only performs its intended function but also handles edge cases and errors gracefully.
+This repository ensures the reliability and correctness of the code with a comprehensive suite of tests. By leveraging `pytest`, testing is automated to cover not just functionality but also edge cases and error handling.
 
 ## Installation
 
-To use these samples, you'll need Python 3.10 and dependencies. Install them with:
+To get started with these samples, ensure you have Python 3.10 or later. Install the necessary dependencies with:
 
 ```bash
 pip install -r requirements.txt
