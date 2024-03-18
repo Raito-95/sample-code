@@ -38,7 +38,6 @@ class SignInOutAutomation:
         self.config = self.load_config(config_path)
         self.validate_config()
         self.driver = self.setup_driver()
-        self.login()
 
     def load_config(self, config_path):
         """
@@ -106,7 +105,7 @@ class SignInOutAutomation:
             WebDriverException: If there is an issue during the login process.
         """
         try:
-            self.driver.get(self.config['login_url'])
+            self.driver.get("https://eadm.ncku.edu.tw/welldoc/ncku/iftwd/signIn.php")
             self.driver.find_element(By.ID, "psnCode").send_keys(self.config['psn_code'])
             self.driver.find_element(By.ID, "password").send_keys(self.config['password'])
             WebDriverWait(self.driver, 10).until(EC.alert_is_present()).accept()
@@ -419,7 +418,7 @@ def main():
     sign-in and sign-out process based on the current time and configured schedule. It ensures
     that the web driver is properly closed after the operations are completed.
     """
-    config_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
+    config_path = os.path.join(os.path.dirname(__file__), '_credentials.json')
     automation = SignInOutAutomation(config_path)
 
     try:
