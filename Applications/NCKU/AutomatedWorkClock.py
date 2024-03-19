@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import sys
 import json
@@ -338,7 +339,7 @@ class SignInOutAutomation:
             logging.info("簽退流程結束。")
 
         while True:
-            next_workday = self.calculate_next_workday(current_time + timedelta(days=1))
+            next_workday = self.calculate_next_workday(current_time)
             next_sign_in_time = next_workday.replace(hour=sign_in_hour, minute=random.randint(self.config['sign_in_minute_start'], self.config['sign_in_minute_end'] - 1))
             next_sign_out_time = next_sign_in_time + timedelta(hours=9, minutes=5)
 
@@ -418,7 +419,7 @@ def main():
     sign-in and sign-out process based on the current time and configured schedule. It ensures
     that the web driver is properly closed after the operations are completed.
     """
-    config_path = os.path.join(os.path.dirname(__file__), '_credentials.json')
+    config_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
     automation = SignInOutAutomation(config_path)
 
     try:
