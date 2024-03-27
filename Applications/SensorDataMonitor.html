@@ -18,6 +18,8 @@
     text-align: left;
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
 </head>
 <body>
 <div class="data-container">
@@ -60,52 +62,68 @@ function displayData(elementId, data, unit = '') {
 }
 
 if ('Accelerometer' in window) {
+  console.log('Accelerometer is supported.');
   const accelerometer = new Accelerometer({frequency: 60});
   accelerometer.addEventListener('reading', () => {
+    console.log('Accelerometer reading:', accelerometer.x, accelerometer.y, accelerometer.z);
     const data = { x: accelerometer.x / 9.8, y: accelerometer.y / 9.8, z: accelerometer.z / 9.8 };
     updateMaxMin('accelerometer', data);
     displayData('accelerometer', data, ' g');
   });
   accelerometer.start();
+} else {
+  console.log('Accelerometer is not supported.');
 }
 
 if ('GravitySensor' in window) {
+  console.log('GravitySensor is supported.');
   const gravitySensor = new GravitySensor({frequency: 60});
   gravitySensor.addEventListener('reading', () => {
+    console.log('GravitySensor reading:', gravitySensor.x, gravitySensor.y, gravitySensor.z);
     const data = { x: gravitySensor.x / 9.8, y: gravitySensor.y / 9.8, z: gravitySensor.z / 9.8 };
     updateMaxMin('gravity', data);
     displayData('gravity', data, ' g');
   });
   gravitySensor.start();
+} else {
+  console.log('GravitySensor is not supported.');
 }
 
 if ('Gyroscope' in window) {
+  console.log('Gyroscope is supported.');
   const gyroscope = new Gyroscope({frequency: 60});
   gyroscope.addEventListener('reading', () => {
+    console.log('Gyroscope reading:', gyroscope.x, gyroscope.y, gyroscope.z);
     const data = { x: gyroscope.x, y: gyroscope.y, z: gyroscope.z };
     updateMaxMin('gyroscope', data);
     displayData('gyroscope', data, ' °/s');
   });
   gyroscope.start();
+} else {
+  console.log('Gyroscope is not supported.');
 }
 
 if ('AbsoluteOrientationSensor' in window) {
+  console.log('AbsoluteOrientationSensor is supported.');
   const orientationSensor = new AbsoluteOrientationSensor({frequency: 60});
   orientationSensor.addEventListener('reading', () => {
+    console.log('AbsoluteOrientationSensor reading:', orientationSensor.quaternion);
     const [x, y, z, w] = orientationSensor.quaternion;
     const data = { x, y, z, w };
     updateMaxMin('orientation', data);
     displayData('orientation', data);
   });
   orientationSensor.start();
+} else {
+  console.log('AbsoluteOrientationSensor is not supported.');
 }
 
 if ('AbsoluteOrientationSensor' in window) {
+  console.log('Inclinometer (AbsoluteOrientationSensor) is supported.');
   const inclinometerSensor = new AbsoluteOrientationSensor({frequency: 60});
   inclinometerSensor.addEventListener('reading', () => {
-
     const [q0, q1, q2, q3] = inclinometerSensor.quaternion;
-
+    console.log('Inclinometer reading:', q0, q1, q2, q3);
     const norm = Math.sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
     const x = q0 / norm;
     const y = q1 / norm;
@@ -124,13 +142,17 @@ if ('AbsoluteOrientationSensor' in window) {
     displayData('inclinometer', data, '°');
 
     const compass = (yaw + 360) % 360;
+    console.log('Compass reading:', compass);
     sensorData.compass.max = Math.max(sensorData.compass.max, compass);
     sensorData.compass.min = Math.min(sensorData.compass.min, compass);
     document.getElementById('compass').textContent = `Compass: ${compass.toFixed(2)}° (Max: ${sensorData.compass.max.toFixed(2)}°, Min: ${sensorData.compass.min.toFixed(2)}°)`;
   });
   inclinometerSensor.start();
+} else {
+  console.log('Inclinometer (AbsoluteOrientationSensor) is not supported.');
 }
 </script>
 
 </body>
 </html>
+
