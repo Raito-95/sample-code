@@ -79,7 +79,7 @@ class ScreenRecorderApp:
         self.recording_status.config(text="Status: Not Recording")
 
     def set_save_directory(self):
-        self.output_filename = filedialog.asksaveasfilename(defaultextension=".avi", filetypes=[("AVI files", "*.avi")])
+        self.output_filename = filedialog.asksaveasfilename(defaultextension=".wav", filetypes=[("WAV files", "*.wav")])
 
     def start_select_area(self):
         self.selection_window = tk.Toplevel(self.root)

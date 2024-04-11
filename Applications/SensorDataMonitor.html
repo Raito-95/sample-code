@@ -18,8 +18,6 @@
     text-align: left;
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
 </head>
 <body>
 <div class="data-container">
@@ -35,9 +33,21 @@
   <div id="inclinometer">Waiting for data...</div>
   <h2>Orientation</h2>
   <div id="orientation">Waiting for data...</div>
+  <button onclick="clearSensorData()">Clear Sensor Data</button>
+  <button onclick="deleteDatabase()">Delete Database</button>
 </div>
 
 <script>
+const worker = new Worker('SensorDataWorker.js');
+
+function clearSensorData() {
+  worker.postMessage({ action: 'clearData' });
+}
+
+function deleteDatabase() {
+  worker.postMessage({ action: 'deleteDatabase' });
+}
+
 const sensorData = {
   accelerometer: { max: { x: -Infinity, y: -Infinity, z: -Infinity }, min: { x: Infinity, y: Infinity, z: Infinity } },
   gravity: { max: { x: -Infinity, y: -Infinity, z: -Infinity }, min: { x: Infinity, y: Infinity, z: Infinity } },
@@ -69,6 +79,7 @@ if ('Accelerometer' in window) {
     const data = { x: accelerometer.x / 9.8, y: accelerometer.y / 9.8, z: accelerometer.z / 9.8 };
     updateMaxMin('accelerometer', data);
     displayData('accelerometer', data, ' g');
+    worker.postMessage({ type: 'accelerometer', data: data });
   });
   accelerometer.start();
 } else {
@@ -83,6 +94,7 @@ if ('GravitySensor' in window) {
     const data = { x: gravitySensor.x / 9.8, y: gravitySensor.y / 9.8, z: gravitySensor.z / 9.8 };
     updateMaxMin('gravity', data);
     displayData('gravity', data, ' g');
+    worker.postMessage({ type: 'gravity', data: data });
   });
   gravitySensor.start();
 } else {
@@ -97,6 +109,7 @@ if ('Gyroscope' in window) {
     const data = { x: gyroscope.x, y: gyroscope.y, z: gyroscope.z };
     updateMaxMin('gyroscope', data);
     displayData('gyroscope', data, ' °/s');
+    worker.postMessage({ type: 'gyroscope', data: data });
   });
   gyroscope.start();
 } else {
@@ -112,6 +125,7 @@ if ('AbsoluteOrientationSensor' in window) {
     const data = { x, y, z, w };
     updateMaxMin('orientation', data);
     displayData('orientation', data);
+    worker.postMessage({ type: 'orientation', data: data });
   });
   orientationSensor.start();
 } else {
@@ -124,22 +138,27 @@ if ('AbsoluteOrientationSensor' in window) {
   inclinometerSensor.addEventListener('reading', () => {
     const [q0, q1, q2, q3] = inclinometerSensor.quaternion;
     console.log('Inclinometer reading:', q0, q1, q2, q3);
-    const norm = Math.sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-    const x = q0 / norm;
-    const y = q1 / norm;
-    const z = q2 / norm;
-    const w = q3 / norm;
 
-    let pitch = Math.asin(2 * (w * x - y * z));
-    let roll = Math.atan2(2 * (w * y + z * x), 1 - 2 * (x * x + y * y));
-    let yaw = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+    const x = q0;
+    const y = q1;
+    const z = q2;
+    const w = q3;
 
-    pitch = pitch * (180 / Math.PI);
-    roll = roll * (180 / Math.PI);
-    yaw = yaw * (180 / Math.PI);
+    let pitch;
+    let sinp = 2 * (w * y - z * x);
+    if (Math.abs(sinp) >= 1) {
+      pitch = sinp < 0 ? -90 : 90;
+    } else {
+      pitch = Math.asin(sinp) * (180 / Math.PI);
+    }
+
+    let roll = Math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y)) * (180 / Math.PI);
+    let yaw = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)) * (180 / Math.PI);
+    
     const data = { pitch, roll, yaw };
     updateMaxMin('inclinometer', data);
     displayData('inclinometer', data, '°');
+    worker.postMessage({ type: 'inclinometer', data: data });
 
     const compass = (yaw + 360) % 360;
     console.log('Compass reading:', compass);
