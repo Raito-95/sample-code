@@ -11,13 +11,12 @@ class ActionRecorder:
         self.playing = False
         self.events = []
         self.keyboard_listener = KeyboardListener(on_press=self.on_press, on_release=self.on_release)
-        self.mouse_listener = MouseListener(on_click=self.on_click)
+        self.mouse_listener = MouseListener(on_move=self.on_move, on_click=self.on_click)
         self.keyboard_controller = KeyboardController()
         self.mouse_controller = MouseController()
         self.last_event_time = None
 
     def on_press(self, key):
-        # Handle Ctrl+R, Ctrl+P, Ctrl+Q functionalities
         if hasattr(key, 'char'):
             if key.char == '\x12':  # Ctrl+R
                 if not self.recording and not self.playing:
@@ -46,7 +45,6 @@ class ActionRecorder:
                 self.mouse_listener.stop()
                 sys.exit(0)
 
-        # Record key events
         if self.recording:
             now = time.time()
             if self.last_event_time is None:
@@ -57,6 +55,15 @@ class ActionRecorder:
 
     def on_release(self, key):
         pass
+
+    def on_move(self, x, y):
+        if self.recording:
+            now = time.time()
+            if self.last_event_time is None:
+                self.last_event_time = now
+            self.events.append(('move', x, y, now - self.last_event_time))
+            self.last_event_time = now
+            print(f"Recorded mouse movement to ({x}, {y})")
 
     def on_click(self, x, y, button, pressed):
         if self.recording:
@@ -80,6 +87,10 @@ class ActionRecorder:
                     print(f"Playing keyboard key: {key}")
                     self.keyboard_controller.press(key)
                     self.keyboard_controller.release(key)
+                elif event[0] == 'move':
+                    x, y = event[1:3]
+                    print(f"Playing mouse movement to ({x}, {y})")
+                    self.mouse_controller.position = (x, y)
                 elif event[0] == 'click':
                     x, y, button, pressed = event[1:5]
                     print(f"Playing mouse click: {'Pressed' if pressed else 'Released'} at ({x}, {y})")
@@ -88,7 +99,7 @@ class ActionRecorder:
                         self.mouse_controller.press(button)
                     else:
                         self.mouse_controller.release(button)
-            time.sleep(1)  # Interval of 1 second between looped playback
+            time.sleep(1)
 
 if __name__ == '__main__':
     recorder = ActionRecorder()
