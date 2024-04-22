@@ -74,13 +74,15 @@
         function createSensorCard(sensorType) {
           const card = document.createElement("div");
           card.className = "card";
-          card.innerHTML = `<h2>${sensorType.charAt(0).toUpperCase() + sensorType.slice(1)}</h2>
+          card.innerHTML = `<h2>${
+            sensorType.charAt(0).toUpperCase() + sensorType.slice(1)
+          }</h2>
                             <div id="${sensorType}-values" class="sensor-values"></div>
                             <button onclick="toggleChart('${sensorType}')">Toggle Chart</button>
                             <canvas id="chart-${sensorType}"></canvas>`;
           document.body.appendChild(card);
           initializeChart(sensorType);
-      }
+        }
 
         function initializeChart(sensorType) {
           const ctx = document
@@ -109,8 +111,6 @@
                 },
                 y: {
                   beginAtZero: false,
-                  suggestedMin: -10,
-                  suggestedMax: 10,
                 },
               },
             },
@@ -142,6 +142,16 @@
                 chart.data.datasets.forEach((dataset, index) => {
                   dataset.data = data.data.map((point) => point[index]);
                 });
+
+                // Update Y axis range dynamically
+                const allDataPoints = data.data.flat();
+                const yAxisMin = Math.min(...allDataPoints);
+                const yAxisMax = Math.max(...allDataPoints);
+                chart.options.scales.y.min =
+                  yAxisMin - (yAxisMax - yAxisMin) * 0.1; // give some padding
+                chart.options.scales.y.max =
+                  yAxisMax + (yAxisMax - yAxisMin) * 0.1; // give some padding
+
                 chart.update();
               }
             }

@@ -19,11 +19,11 @@ class MouseKeyboardControl:
             with self.lock:
                 self.mouse_controller.click(mouse.Button.left)
                 self.print_event_time("Mouse clicked")
-            self.stop_clicking.wait(0.1)
+            self.stop_clicking.wait(0.2)
 
     def on_press(self, key):
         if hasattr(key, 'char') and key.char is not None:
-            if key.char == 'z' and not self.clicking_active:
+            if key.char == '\x1A' and not self.clicking_active:
                 self.stop_clicking.clear()
                 self.clicking_active = True
                 threading.Thread(target=self.click_mouse).start()
@@ -34,7 +34,7 @@ class MouseKeyboardControl:
                 self.clicking_active = False
                 self.keyboard_controller.release(keyboard.Key.ctrl)
                 self.print_event_time("Ctrl released and mouse clicking stopped")
-            elif key.char == 'q':
+            elif key.char == '\x11':
                 self.stop_clicking.set()
                 if self.clicking_active:
                     self.keyboard_controller.release(keyboard.Key.ctrl)
