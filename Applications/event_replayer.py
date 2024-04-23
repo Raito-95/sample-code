@@ -2,12 +2,28 @@ import sys
 import json
 import time
 import threading
-import tkinter as tk
+from collections import namedtuple
 from queue import Queue, Empty
 from tkinter import filedialog
+import tkinter as tk
+
 from pynput import keyboard
 from pynput.keyboard import Listener as KeyboardListener, Controller as KeyboardController, Key, KeyCode
 from pynput.mouse import Listener as MouseListener, Controller as MouseController, Button
+
+
+
+ComboKeys = namedtuple('ComboKeys', ['ctrl_a', 'ctrl_b', 'ctrl_c', 'ctrl_d', 'ctrl_e',
+                                     'ctrl_f', 'ctrl_g', 'ctrl_h', 'ctrl_i', 'ctrl_j',
+                                     'ctrl_k', 'ctrl_l', 'ctrl_m', 'ctrl_n', 'ctrl_o',
+                                     'ctrl_p', 'ctrl_q', 'ctrl_r', 'ctrl_s', 'ctrl_t',
+                                     'ctrl_u', 'ctrl_v', 'ctrl_w', 'ctrl_x', 'ctrl_y', 'ctrl_z'])
+
+combo_keys = ComboKeys('\x01', '\x02', '\x03', '\x04', '\x05',
+                       '\x06', '\x07', '\x08', '\x09', '\x0a',
+                       '\x0b', '\x0c', '\x0d', '\x0e', '\x0f',
+                       '\x10', '\x11', '\x12', '\x13', '\x14',
+                       '\x15', '\x16', '\x17', '\x18', '\x19', '\x1a')
 
 
 class ActionRecorder:
@@ -29,7 +45,7 @@ class ActionRecorder:
     def on_press(self, key):
         try:
             if hasattr(key, 'char'):
-                if key.char == '\x12':  # Ctrl+R
+                if key.char == combo_keys.ctrl_r:  # Ctrl+R
                     if not self.recording and not self.playing:
                         self.recording = True
                         self.events = []
@@ -42,7 +58,7 @@ class ActionRecorder:
                         self.recording = False
                         print("Recording ended...")
                         return
-                if key.char == '\x10':  # Ctrl+P
+                if key.char == combo_keys.ctel_p:  # Ctrl+P
                     if not self.playing:
                         self.playing = True
                         print("Start playback...")
@@ -52,13 +68,13 @@ class ActionRecorder:
                         self.playing = False
                         print("Playback stopped...")
                         return
-                if key.char == '\x13':  # Ctrl+S
+                if key.char == combo_keys.ctrl_s:  # Ctrl+S
                     self.command_queue.put(('save', None))
                     return
-                if key.char == '\x0c':  # Ctrl+L
+                if key.char == combo_keys.ctrl_l:  # Ctrl+L
                     self.command_queue.put(('load', None))
                     return
-                if key.char == '\x11':  # Ctrl+Q
+                if key.char == combo_keys.ctrl_q:  # Ctrl+Q
                     self.command_queue.put(('exit', None))
                     return
 
