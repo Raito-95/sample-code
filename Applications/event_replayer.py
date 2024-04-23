@@ -1,61 +1,80 @@
 import sys
+import json
 import time
 import threading
+import tkinter as tk
+from queue import Queue, Empty
+from tkinter import filedialog
 from pynput import keyboard
-from pynput.keyboard import Listener as KeyboardListener, Controller as KeyboardController
-from pynput.mouse import Listener as MouseListener, Controller as MouseController
+from pynput.keyboard import Listener as KeyboardListener, Controller as KeyboardController, Key, KeyCode
+from pynput.mouse import Listener as MouseListener, Controller as MouseController, Button
+
 
 class ActionRecorder:
     def __init__(self):
         self.recording = False
         self.playing = False
         self.events = []
-        self.keyboard_listener = KeyboardListener(on_press=self.on_press, on_release=self.on_release)
-        self.mouse_listener = MouseListener(on_move=self.on_move, on_click=self.on_click)
+        self.keyboard_listener = KeyboardListener(
+            on_press=self.on_press, on_release=self.on_release)
+        self.mouse_listener = MouseListener(
+            on_move=self.on_move, on_click=self.on_click)
         self.keyboard_controller = KeyboardController()
         self.mouse_controller = MouseController()
         self.last_event_time = None
+        self.root = tk.Tk()
+        self.root.withdraw()
+        self.command_queue = Queue()
 
     def on_press(self, key):
-        if hasattr(key, 'char'):
-            if key.char == '\x12':  # Ctrl+R
-                if not self.recording and not self.playing:
-                    self.recording = True
-                    self.events = []
-                    self.last_event_time = time.time()
-                    print("Start recording...")
+        try:
+            if hasattr(key, 'char'):
+                if key.char == '\x12':  # Ctrl+R
+                    if not self.recording and not self.playing:
+                        self.recording = True
+                        self.events = []
+                        self.last_event_time = time.time()
+                        print("Start recording...")
+                        return
+                    elif self.recording:
+                        if self.events and (self.events[-1]['key'] == Key.ctrl_l or self.events[-1]['key'] == Key.ctrl_r):
+                            self.events.pop()
+                        self.recording = False
+                        print("Recording ended...")
+                        return
+                if key.char == '\x10':  # Ctrl+P
+                    if not self.playing:
+                        self.playing = True
+                        print("Start playback...")
+                        threading.Thread(target=self.play_events).start()
+                        return
+                    elif self.playing:
+                        self.playing = False
+                        print("Playback stopped...")
+                        return
+                if key.char == '\x13':  # Ctrl+S
+                    self.command_queue.put(('save', None))
                     return
-                elif self.recording:
-                    self.recording = False
-                    print("Recording ended...")
+                if key.char == '\x0c':  # Ctrl+L
+                    self.command_queue.put(('load', None))
                     return
-            if key.char == '\x10':  # Ctrl+P
-                if not self.playing:
-                    self.playing = True
-                    print("Start playback...")
-                    threading.Thread(target=self.play_events).start()
+                if key.char == '\x11':  # Ctrl+Q
+                    self.command_queue.put(('exit', None))
                     return
-                elif self.playing:
-                    self.playing = False
-                    print("Playback stopped...")
-                    return
-            if key.char == '\x11':  # Ctrl+Q
-                print("Exiting program...")
-                self.keyboard_listener.stop()
-                self.mouse_listener.stop()
-                sys.exit(0)
 
-        if self.recording:
-            now = time.time()
-            if self.last_event_time is None:
+            if self.recording:
+                now = time.time()
+                if self.last_event_time is None:
+                    self.last_event_time = now
+                self.events.append({
+                    'type': 'key',
+                    'key': key,
+                    'delay': now - self.last_event_time
+                })
                 self.last_event_time = now
-            self.events.append({
-                'type': 'key',
-                'key': key,
-                'delay': now - self.last_event_time
-            })
-            self.last_event_time = now
-            print(f"Recorded keyboard key: {key}")
+                print(f"Recorded keyboard key: {key}")
+        except AttributeError:
+            pass
 
     def on_release(self, key):
         pass
@@ -88,7 +107,8 @@ class ActionRecorder:
                 'delay': now - self.last_event_time
             })
             self.last_event_time = now
-            print(f"Recorded mouse click: {'Pressed' if pressed else 'Released'} at ({x}, {y})")
+            print(
+                f"Recorded mouse click: {'Pressed' if pressed else 'Released'} at ({x}, {y})")
 
     def play_events(self):
         while self.playing:
@@ -110,7 +130,8 @@ class ActionRecorder:
                     self.mouse_controller.position = (x, y)
                 elif event_type == 'click':
                     x, y, button, pressed = event['x'], event['y'], event['button'], event['pressed']
-                    print(f"Playing mouse click: {'Pressed' if pressed else 'Released'} at ({x}, {y})")
+                    print(
+                        f"Playing mouse click: {'Pressed' if pressed else 'Released'} at ({x}, {y})")
                     self.mouse_controller.position = (x, y)
                     if pressed:
                         self.mouse_controller.press(button)
@@ -118,8 +139,104 @@ class ActionRecorder:
                         self.mouse_controller.release(button)
             time.sleep(1)
 
+    def handle_commands(self):
+        try:
+            while True:
+                command, _ = self.command_queue.get_nowait()
+                if command == 'save':
+                    self.save_events()
+                elif command == 'load':
+                    self.load_events()
+                elif command == 'exit':
+                    self.exit_app()
+        except Empty:
+            pass
+
+    def serialize_event(self, event):
+        """Serialize event so it can be stored as JSON."""
+        event_copy = event.copy()
+        if 'key' in event_copy:
+            event_copy['key'] = self.serialize_key(event_copy['key'])
+        if 'button' in event_copy:
+            event_copy['button'] = self.serialize_button(event_copy['button'])
+        return event_copy
+
+    def serialize_key(self, key):
+        """Serialize keyboard key to string."""
+        if hasattr(key, 'char'):
+            return f"KeyCode(char={repr(key.char)})"
+        elif isinstance(key, keyboard.Key):
+            return f"Key.{key.name}"
+        return str(key)
+
+    def serialize_button(self, button):
+        """Serialize mouse button to string."""
+        if isinstance(button, Button):
+            return f"Button.{button.name}"
+        return str(button)
+
+    def save_events(self):
+        filename = filedialog.asksaveasfilename(
+            defaultextension='.json',
+            filetypes=[('JSON files', '*.json')],
+            title="Save events as..."
+        )
+        if filename:
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump([self.serialize_event(e) for e in self.events], f)
+            print(f"Events have been saved to {filename}")
+
+    def load_events(self):
+        filename = filedialog.askopenfilename(
+            filetypes=[('JSON files', '*.json')],
+            title="Load events from..."
+        )
+        if filename:
+            with open(filename, 'r', encoding='utf-8') as f:
+                raw_events = json.load(f)
+            self.events = [self.deserialize_event(e) for e in raw_events]
+            print(f"Events have been loaded from {filename}")
+
+    def deserialize_event(self, event):
+        if 'key' in event:
+            event['key'] = self.deserialize_key(event['key'])
+        if 'button' in event:
+            event['button'] = self.deserialize_button(event['button'])
+        return event
+
+    def deserialize_key(self, key_str):
+        if key_str.startswith('KeyCode(char='):
+            char_repr = key_str[len("KeyCode(char="):-1]
+            char = char_repr.strip("'")
+            return KeyCode(char=char)
+        elif key_str.startswith('Key.'):
+            key_name = key_str.split('.')[1]
+            return getattr(Key, key_name)
+        return key_str
+
+    def deserialize_button(self, button_str):
+        if button_str.startswith('Button.'):
+            return getattr(Button, button_str.split('.')[1])
+        return button_str
+
+    def exit_app(self):
+        self.keyboard_listener.stop()
+        self.mouse_listener.stop()
+        self.root.quit()
+        sys.exit(0)
+
+    def run(self):
+        threading.Thread(target=self.keyboard_listener.start).start()
+        threading.Thread(target=self.mouse_listener.start).start()
+        try:
+            while True:
+                self.root.update()
+                self.handle_commands()
+                time.sleep(0.1)
+        except tk.TclError:
+            pass  # Handle the exception if the window is closed
+
+
 if __name__ == '__main__':
     recorder = ActionRecorder()
-    with recorder.keyboard_listener, recorder.mouse_listener:
-        recorder.keyboard_listener.join()
-        recorder.mouse_listener.join()
+    recorder.run()
