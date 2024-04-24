@@ -11,19 +11,10 @@ from pynput import keyboard
 from pynput.keyboard import Listener as KeyboardListener, Controller as KeyboardController, Key, KeyCode
 from pynput.mouse import Listener as MouseListener, Controller as MouseController, Button
 
-
-
-ComboKeys = namedtuple('ComboKeys', ['ctrl_a', 'ctrl_b', 'ctrl_c', 'ctrl_d', 'ctrl_e',
-                                     'ctrl_f', 'ctrl_g', 'ctrl_h', 'ctrl_i', 'ctrl_j',
-                                     'ctrl_k', 'ctrl_l', 'ctrl_m', 'ctrl_n', 'ctrl_o',
-                                     'ctrl_p', 'ctrl_q', 'ctrl_r', 'ctrl_s', 'ctrl_t',
-                                     'ctrl_u', 'ctrl_v', 'ctrl_w', 'ctrl_x', 'ctrl_y', 'ctrl_z'])
-
-combo_keys = ComboKeys('\x01', '\x02', '\x03', '\x04', '\x05',
-                       '\x06', '\x07', '\x08', '\x09', '\x0a',
-                       '\x0b', '\x0c', '\x0d', '\x0e', '\x0f',
-                       '\x10', '\x11', '\x12', '\x13', '\x14',
-                       '\x15', '\x16', '\x17', '\x18', '\x19', '\x1a')
+ComboKeys = namedtuple('ComboKeys', ' '.join(
+    [f'ctrl_{chr(i)}' for i in range(ord("a"), ord("z")+1)]))
+combo_keys = ComboKeys(
+    *[getattr(Key, f'ctrl_{chr(i)}') for i in range(ord("a"), ord("z")+1)])
 
 
 class ActionRecorder:
@@ -31,34 +22,28 @@ class ActionRecorder:
         self.recording = False
         self.playing = False
         self.events = []
-        self.keyboard_listener = KeyboardListener(
-            on_press=self.on_press, on_release=self.on_release)
+        self.last_event_time = None
+        self.command_queue = Queue()
+        self.root = tk.Tk()
+        self.root.withdraw()
+        self.setup_listeners()
+
+    def setup_listeners(self):
+        self.keyboard_listener = KeyboardListener(on_press=self.on_press)
         self.mouse_listener = MouseListener(
             on_move=self.on_move, on_click=self.on_click)
         self.keyboard_controller = KeyboardController()
         self.mouse_controller = MouseController()
-        self.last_event_time = None
-        self.root = tk.Tk()
-        self.root.withdraw()
-        self.command_queue = Queue()
 
     def on_press(self, key):
         try:
             if hasattr(key, 'char'):
                 if key.char == combo_keys.ctrl_r:  # Ctrl+R
                     if not self.recording and not self.playing:
-                        self.recording = True
-                        self.events = []
-                        self.last_event_time = time.time()
-                        print("Start recording...")
-                        return
+                        self.start_recording()
                     elif self.recording:
-                        if self.events and (self.events[-1]['key'] == Key.ctrl_l or self.events[-1]['key'] == Key.ctrl_r):
-                            self.events.pop()
-                        self.recording = False
-                        print("Recording ended...")
-                        return
-                if key.char == combo_keys.ctel_p:  # Ctrl+P
+                        self.stop_recording()
+                if key.char == combo_keys.ctrl_p:  # Ctrl+P
                     if not self.playing:
                         self.playing = True
                         print("Start playback...")
@@ -79,18 +64,35 @@ class ActionRecorder:
                     return
 
             if self.recording:
-                now = time.time()
-                if self.last_event_time is None:
-                    self.last_event_time = now
-                self.events.append({
-                    'type': 'key',
-                    'key': key,
-                    'delay': now - self.last_event_time
-                })
-                self.last_event_time = now
-                print(f"Recorded keyboard key: {key}")
+                self.record_key_event(key)
         except AttributeError:
             pass
+
+    def start_recording(self):
+        self.recording = True
+        self.events = []
+        self.last_event_time = time.time()
+        print("Start recording...")
+
+    def stop_recording(self):
+        self.recording = False
+        if self.events:
+            last_event = self.events[-1]
+            if last_event['key'] == Key.ctrl_l or last_event['key'] == Key.ctrl_r:
+                self.events.pop()
+        print("Recording ended...")
+
+    def record_key_event(self, key):
+        now = time.time()
+        if self.last_event_time is None:
+            self.last_event_time = now
+        self.events.append({
+            'type': 'key',
+            'key': key,
+            'delay': now - self.last_event_time
+        })
+        self.last_event_time = now
+        print(f"Recorded keyboard key: {key}")
 
     def on_release(self, key):
         pass
@@ -130,8 +132,13 @@ class ActionRecorder:
         while self.playing:
             for event in self.events:
                 if not self.playing:
+                    print("Playback halted before an event.")
                     break
                 time.sleep(event['delay'])
+                if not self.playing:
+                    print("Playback halted during an event delay.")
+                    break
+
                 event_type = event['type']
                 if event_type == 'key':
                     key = event['key']
@@ -169,7 +176,6 @@ class ActionRecorder:
             pass
 
     def serialize_event(self, event):
-        """Serialize event so it can be stored as JSON."""
         event_copy = event.copy()
         if 'key' in event_copy:
             event_copy['key'] = self.serialize_key(event_copy['key'])
@@ -178,7 +184,6 @@ class ActionRecorder:
         return event_copy
 
     def serialize_key(self, key):
-        """Serialize keyboard key to string."""
         if hasattr(key, 'char'):
             return f"KeyCode(char={repr(key.char)})"
         elif isinstance(key, keyboard.Key):
@@ -186,7 +191,6 @@ class ActionRecorder:
         return str(key)
 
     def serialize_button(self, button):
-        """Serialize mouse button to string."""
         if isinstance(button, Button):
             return f"Button.{button.name}"
         return str(button)
