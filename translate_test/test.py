@@ -1,12 +1,17 @@
-import pytesseract
-from PIL import ImageGrab, Image
+import os
 import time
+
 import cv2
 import numpy as np
 import requests
+from PIL import Image, ImageGrab
+from translate import Translator
+
+import pytesseract
+
 
 # API key for Google Cloud Translation
-API_KEY = 'KEY'
+API_KEY = os.getenv('TOKEN')
 
 # Google Cloud Translation API URL
 TRANSLATE_URL = 'https://translation.googleapis.com/language/translate/v2'
@@ -18,15 +23,15 @@ def preprocess_image(image, show_images=False):
     image_cv = cv2.cvtColor(image_cv, cv2.COLOR_RGB2GRAY)
 
     # Enhance contrast by CLAHE (Contrast Limited Adaptive Histogram Equalization)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(1, 1))
     image_cv = clahe.apply(image_cv)
 
     # Invert colors if the text and background are both light
     image_cv = cv2.bitwise_not(image_cv)
 
-    # Adaptive thresholding to handle varying background
-    image_cv = cv2.adaptiveThreshold(
-        image_cv, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    # # Adaptive thresholding to handle varying background
+    # image_cv = cv2.adaptiveThreshold(
+    #     image_cv, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 
     # Convert back to PIL image for Tesseract
     image = Image.fromarray(image_cv)
@@ -46,6 +51,14 @@ def translate_image_text(image, show_images=False):
     # Clean and format the extracted text
     extracted_text = extracted_text.replace('\n', ' ')
     return extracted_text
+
+def translate_text_free(text, target_language='zh-TW'):
+    translator = Translator(to_lang=target_language)
+    try:
+        translated_text = translator.translate(text)
+        return translated_text
+    except Exception as e:
+        return f"An error occurred during translation: {e}"
 
 # Translate text using Google Cloud Translation API
 def translate_text(text, target_language='zh-TW'):
@@ -84,7 +97,10 @@ def monitor_clipboard(show_images=False):
                     else:
                         # Translate the text and print it
                         translated_text = translate_text(extracted_text)
+                        translated_text_free = translate_text_free(extracted_text)
                         print(translated_text)
+                        print('**********')
+                        print(translated_text_free)
                         print("--------------------------------------------------")
 
                     # Update previous_image to avoid processing the same image again
