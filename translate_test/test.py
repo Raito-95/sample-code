@@ -1,17 +1,17 @@
 import os
 import time
-
 import cv2
 import numpy as np
 import requests
+from dotenv import load_dotenv
 from PIL import Image, ImageGrab
 from translate import Translator
-
 import pytesseract
 
+load_dotenv()
 
 # API key for Google Cloud Translation
-API_KEY = os.getenv('TOKEN')
+API_KEY = os.getenv('GCP_TOKEN')
 
 # Google Cloud Translation API URL
 TRANSLATE_URL = 'https://translation.googleapis.com/language/translate/v2'

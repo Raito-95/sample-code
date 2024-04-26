@@ -11,11 +11,17 @@ from pynput import keyboard
 from pynput.keyboard import Listener as KeyboardListener, Controller as KeyboardController, Key, KeyCode
 from pynput.mouse import Listener as MouseListener, Controller as MouseController, Button
 
-ComboKeys = namedtuple('ComboKeys', ' '.join(
-    [f'ctrl_{chr(i)}' for i in range(ord("a"), ord("z")+1)]))
-combo_keys = ComboKeys(
-    *[getattr(Key, f'ctrl_{chr(i)}') for i in range(ord("a"), ord("z")+1)])
+ComboKeys = namedtuple('ComboKeys', ['ctrl_a', 'ctrl_b', 'ctrl_c', 'ctrl_d', 'ctrl_e',
+                                     'ctrl_f', 'ctrl_g', 'ctrl_h', 'ctrl_i', 'ctrl_j',
+                                     'ctrl_k', 'ctrl_l', 'ctrl_m', 'ctrl_n', 'ctrl_o',
+                                     'ctrl_p', 'ctrl_q', 'ctrl_r', 'ctrl_s', 'ctrl_t',
+                                     'ctrl_u', 'ctrl_v', 'ctrl_w', 'ctrl_x', 'ctrl_y', 'ctrl_z'])
 
+combo_keys = ComboKeys('\x01', '\x02', '\x03', '\x04', '\x05',
+                       '\x06', '\x07', '\x08', '\x09', '\x0a',
+                       '\x0b', '\x0c', '\x0d', '\x0e', '\x0f',
+                       '\x10', '\x11', '\x12', '\x13', '\x14',
+                       '\x15', '\x16', '\x17', '\x18', '\x19', '\x1a')
 
 class ActionRecorder:
     def __init__(self):
