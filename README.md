@@ -1,35 +1,48 @@
-# Sample Code Repository
+# Sample Code Repo
 
-Welcome to the [sample-code](https://github.com/Raito-95/sample-code) repository! This diverse collection spans various topics in computer science and software development, offering practical examples to demonstrate programming concepts and techniques.
+Welcome to the [sample-code](https://github.com/Raito-95/sample-code) repository! This diverse collection spans various domains of computer science and software development, providing practical examples to illustrate programming concepts and techniques across different applications.
 
 ## Contents
 
-- **Algorithms**: Features a variety of algorithm implementations, including:
-  - Fibonacci sequence calculators (recursive and iterative methods).
-  - Search functions demonstrating linear and binary search techniques.
-  - Sorting algorithms showcasing bubble sort, merge sort, and quick sort, along with a recursive function example.
+### Algorithms
+- Fibonacci Calculator: Demonstrates recursive and iterative approaches.
+- Search Functions: Includes linear and binary search algorithms.
+- Sorting Algorithms: Features bubble sort, merge sort, quick sort, and examples of recursion.
 
-- **Applications**: Contains practical applications and scripts for automation and productivity, such as:
-  - An auto clicker script for simulating mouse clicks.
-  - A currency total calculator in JavaScript for aggregating amounts in different currencies.
-  - A game assistance tool for recording and playing back mouse events.
-  - Image processing scripts for cropping and enhancing images.
-  - Several other utility scripts for tasks like screen capturing and system monitoring.
+### Algorithms Lab
+- Grade System: A grading system implementation.
 
-- **Audio Processing**: Includes an audio recorder and visualizer script, demonstrating how to work with audio data in Python.
+### Applications
+- Automated Work Clock: Automation script for clocking work hours.
+- Currency Total Calculator: JavaScript utility for calculating total currency amounts.
+- Data Logger GUI: Graphical interface for data logging.
+- Image Tools: Scripts for cropping and enhancing images.
+- Screen Utilities: Tools for capturing and recording screen activities.
+- System Monitors: Scripts for monitoring system activities.
+- Miscellaneous: Includes a test image generator and a Wikipedia title scraper.
 
-- **Data Structures**: Offers implementations of fundamental data structures, including binary search trees and linked lists, showcasing how to construct and manipulate complex data structures.
+### Audio Processing
+- Audio Recorder Visualizer: Demonstrates handling audio data in Python.
 
-- **Networking and Communication**: Contains a basic client socket example, illustrating simple network communication.
+### Data Structures
+- Binary Search Tree, Binary Tree, Doubly Linked List, Linked List, Queue, and Stack: Implementations of basic and complex data structures.
 
-## Testing
+### Design Patterns (Doc)
+- Detailed explanations and examples of Builder, Factory Method, Prototype, and Singleton patterns.
 
-This repository ensures the reliability and correctness of the code with a comprehensive suite of tests. By leveraging `pytest`, testing is automated to cover not just functionality but also edge cases and error handling.
+### Networking and Communication
+- Basic client socket example for network communication.
+
+### Streaming
+- Video Streaming: Implements Websocket and WebXR for video streaming.
 
 ## Installation
 
-To get started with these samples, ensure you have Python 3.10 or later. Install the necessary dependencies with:
-
+To get started with these samples, ensure you have Python 3.10 or later. Install the necessary dependencies as follows:
 ```bash
 pip install -r requirements.txt
 ```
+
+## Testing
+
+This repository ensures code reliability and correctness with a comprehensive suite of tests using `pytest`, covering functionality, edge cases, and error handling.
