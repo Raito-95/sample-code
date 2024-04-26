@@ -13,7 +13,7 @@ __pycache__/
 .env
 
 # Directories
-/code/
+/tool/
 /exe/
 build
 dist
