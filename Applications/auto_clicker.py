@@ -23,18 +23,18 @@ class MouseKeyboardControl:
 
     def on_press(self, key):
         if hasattr(key, 'char') and key.char is not None:
-            if key.char == '\x1A' and not self.clicking_active:
+            if key.char == 'z' and not self.clicking_active:
                 self.stop_clicking.clear()
                 self.clicking_active = True
                 threading.Thread(target=self.click_mouse).start()
                 self.keyboard_controller.press(keyboard.Key.ctrl)
                 self.print_event_time("Ctrl pressed and mouse clicking started")
-            elif key.char == '\x18' and self.clicking_active:
+            elif key.char == 'x' or key.char == '\x18':
                 self.stop_clicking.set()
                 self.clicking_active = False
                 self.keyboard_controller.release(keyboard.Key.ctrl)
                 self.print_event_time("Ctrl released and mouse clicking stopped")
-            elif key.char == '\x11':
+            elif key.char == 'q' or key.char == '\x11':
                 self.stop_clicking.set()
                 if self.clicking_active:
                     self.keyboard_controller.release(keyboard.Key.ctrl)
