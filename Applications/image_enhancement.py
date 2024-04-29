@@ -1,38 +1,60 @@
 from PIL import Image, ImageEnhance
 import os
 
-# Function to enhance an image with a given factor and enhancer type
-def enhance_image(input_frame, element, enhancer_type, factor, save_path):
-    enhance = enhancer_type(input_frame)
-    enhanced_image = enhance.enhance(factor)
+
+def enhance_image(input_frame, enhancer_class, factor, save_path):
+    """
+    Enhance an image with a given factor using a specific PIL enhancer class and save it.
+    """
+    enhancer = enhancer_class(input_frame)
+    enhanced_image = enhancer.enhance(factor)
     enhanced_image.save(save_path)
     print(f'Saved image to {save_path}, Enhancement factor: {factor}')
 
-# Get the current directory of the script
+
+def get_images_list(directory, extensions):
+    """
+    Filter out image files based on specified extensions in the given directory.
+    """
+    return [file for file in os.listdir(directory) if file.lower().endswith(extensions)]
+
+
+def create_folder(path):
+    """
+    Create a folder if it doesn't already exist.
+    """
+    os.makedirs(path, exist_ok=True)
+
+
+# Paths
 current_path = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.join(current_path, 'data')
-enhancement_types = [ImageEnhance.Brightness, ImageEnhance.Color, ImageEnhance.Contrast, ImageEnhance.Sharpness]
-enhancement_names = ['bright', 'color', 'contrast', 'sharp']
 
-# Create folders (if they don't exist)
-for folder_name in enhancement_names:
-    folder_path = os.path.join(data_path, folder_name)
-    os.makedirs(folder_path, exist_ok=True)
+# Enhancements setup
+enhancement_types = {
+    'brightness': ImageEnhance.Brightness,
+    'color': ImageEnhance.Color,
+    'contrast': ImageEnhance.Contrast,
+    'sharpness': ImageEnhance.Sharpness
+}
+image_extensions = ('.png', '.jpg', '.jpeg')
 
-# Filter out image files
-images_list = [file for file in os.listdir(current_path) if file.lower().endswith(('.png', '.jpg', '.jpeg'))]
+# Create enhancement folders
+for name in enhancement_types.keys():
+    create_folder(os.path.join(data_path, name))
 
-# Apply multiple enhancements to each image
+# Process images
+images_list = get_images_list(current_path, image_extensions)
 for image_name in images_list:
     image_path = os.path.join(current_path, image_name)
-    if os.path.isfile(image_path):
-        frame = Image.open(image_path)
-        
-        for enhancer_type, enhancer_name in zip(enhancement_types, enhancement_names):
-            factor = 0.5
-            enhancer_folder = os.path.join(data_path, enhancer_name)
-            
-            for count in range(6):
-                save_path = os.path.join(enhancer_folder, f"{os.path.splitext(image_name)[0]}_{enhancer_name}_{count + 1}.png")
-                enhance_image(frame, enhancer_type, enhancer_name, factor, save_path)
-                factor += 0.3
+    frame = Image.open(image_path)
+
+    for enhancer_name, enhancer_class in enhancement_types.items():
+        enhancer_folder = os.path.join(data_path, enhancer_name)
+        factor = 0.5
+
+        for count in range(6):
+            save_path = os.path.join(
+                enhancer_folder, f"{os.path.splitext(image_name)[0]}_{enhancer_name}_{count + 1}.png")
+            enhance_image(frame, enhancer_class, factor, save_path)
+            factor += 0.3
