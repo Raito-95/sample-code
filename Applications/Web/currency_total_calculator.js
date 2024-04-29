@@ -4,7 +4,7 @@ var totalJPYAmt = 0; // Total amount in Japanese Yen
 var totalTWDAmt = 0; // Total amount in Taiwanese Dollars
 
 // Select the parent element containing price information using an appropriate selector
-var parentDiv = document.querySelector('#yDmH0d > c-wiz:nth-child(8) > div > div > div:nth-child(4) > div.NgfTBf.fny74c');
+var parentDiv = document.querySelector("#yDmH0d > c-wiz.SSPGKf.glB9Ve.nI07g > div > div > div:nth-child(4) > div.NgfTBf.fny74c");
 
 if (parentDiv) {
     // Select all div elements with class 'mshXob' within the specified parent element
