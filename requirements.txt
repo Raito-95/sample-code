@@ -10,6 +10,7 @@ PyQt5
 pyserial
 pytesseract
 pynput
+python-dotenv
 requests
 screeninfo
 translate
