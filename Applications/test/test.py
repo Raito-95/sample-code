@@ -14,9 +14,16 @@ def load_unique_colors(path):
 def save_colors_to_code_format(unique, file_path):
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write("unique_colors = np.array([\n")
+        count = 0
         for color in unique:
-            file.write(f"    [{', '.join(map(str, color))}],\n")
-        file.write("])")
+            file.write(f"[{', '.join(map(str, color))}],")
+            count += 1
+            if count % 4 == 0:
+                file.write("\n")
+            else:
+                file.write(" ")
+        file.write("\n])")
+
 
 image_path = 'C:/Users/User/Desktop/result.png'
 unique_colors = load_unique_colors(image_path)
