@@ -98,7 +98,8 @@ def monitor_clipboard(show_images=False):
                         # Translate the text and print it
                         translated_text = translate_text(extracted_text)
                         translated_text_free = translate_text_free(extracted_text)
-                        
+                        print(extracted_text)
+                        print('**********')
                         print(translated_text)
                         print('**********')
                         print(translated_text_free)
