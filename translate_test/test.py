@@ -100,9 +100,9 @@ def monitor_clipboard(show_images=False):
                         translated_text_free = translate_text_free(extracted_text)
                         print(extracted_text)
                         print('**********')
-                        print(translated_text)
+                        print(f'Paid: {translated_text}')
                         print('**********')
-                        print(translated_text_free)
+                        print(f'Free: {translated_text_free}')
                         print("--------------------------------------------------")
 
                     # Update previous_image to avoid processing the same image again
