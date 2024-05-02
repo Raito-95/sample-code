@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
 def send_line_notify(notification_message):
     line_notify_token = os.getenv('LINE_NOTIFY_TOKEN')
     line_notify_api = 'https://notify-api.line.me/api/notify'

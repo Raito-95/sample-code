@@ -1,7 +1,7 @@
-from time import sleep, strftime, localtime
-import pyautogui
-import requests
 import os
+from time import sleep, strftime, localtime
+import requests
+import pyautogui
 from dotenv import load_dotenv
 
 # Get the current directory of the script

@@ -1,12 +1,23 @@
-from Data_Structures.doubly_linked_list import DoublyLinkedList
+import pytest
+from DataStructures.doubly_linked_list import DoublyLinkedList
 
-def test_append_to_doubly_linked_list():
+@pytest.fixture
+def dll():
     dll = DoublyLinkedList()
-    dll.append(1)
-    dll.append(2)
-    dll.append(3)
+    for num in [1, 2, 3]:
+        dll.append(num)
+    return dll
 
-    assert dll.head.data == 1
-    assert dll.head.next.data == 2
-    assert dll.head.next.next.data == 3
-    assert dll.head.next.next.prev.data == 2
+def test_append_and_display(dll):
+    dll.append(4)
+    assert dll.display_forward() == [1, 2, 3, 4]
+    assert dll.display_backward() == [4, 3, 2, 1]
+
+def test_delete(dll):
+    node = dll.find(2)
+    dll.delete(node)
+    assert dll.display_forward() == [1, 3]
+
+def test_find(dll):
+    node = dll.find(3)
+    assert node.data == 3

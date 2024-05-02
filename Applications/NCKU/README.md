@@ -3,7 +3,7 @@
 ## 1. 前置準備
 在開始使用本程式之前，請確保您的系統中已安裝以下軟體和套件：
 
-- Python 3.10.6 或更高版本
+- Python 3.10 或更高版本
 - Chrome 瀏覽器
 
 ## 2. 安裝套件
@@ -12,7 +12,6 @@
 ```bash
 pip install .
 ```
-這將根據 requirements.txt 文件中的指定版本安裝 selenium、requests、webdriver-manager 和 holidays 套件。
 
 ## 3. 設定檔案
 程式需要一個名為 credentials.json 的配置檔案，用於存儲登入資訊和其他設定。請在程式所在的目錄下創建此檔案，並填入以下內容：

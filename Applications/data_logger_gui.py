@@ -1,12 +1,12 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
-import threading
 import re
+import threading
 from collections import deque
-import serial
-import serial.tools.list_ports
+import tkinter as tk
+from tkinter import messagebox, ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+import serial
+import serial.tools.list_ports
 
 BUFFER_SIZE = 100
 NUM_LINES_TO_READ = 1

@@ -1,6 +1,6 @@
-from PIL import ImageGrab  # Used for capturing screen images
-import numpy as np  # Used for image data processing
-import cv2  # OpenCV library for video processing
+from PIL import ImageGrab
+import numpy as np
+import cv2
 
 # Capture a screen image
 image = ImageGrab.grab()

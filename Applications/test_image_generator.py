@@ -1,5 +1,5 @@
-from PIL import Image, ImageDraw
 import random
+from PIL import Image, ImageDraw
 
 width, height = 1920, 1080
 

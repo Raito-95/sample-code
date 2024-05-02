@@ -1,6 +1,5 @@
-from PIL import Image, ImageEnhance
 import os
-
+from PIL import Image, ImageEnhance
 
 def enhance_image(input_frame, enhancer_class, factor, save_path):
     """
