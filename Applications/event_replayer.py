@@ -25,6 +25,29 @@ combo_keys = ComboKeys('\x01', '\x02', '\x03', '\x04', '\x05',
 
 
 class ActionRecorder:
+    function_keys = {
+        Key.alt: "Alt", Key.alt_l: "Left Alt", Key.alt_r: "Right Alt",
+        Key.alt_gr: "AltGr", Key.backspace: "Backspace", Key.caps_lock: "Caps Lock",
+        Key.cmd: "Command", Key.cmd_l: "Left Command", Key.cmd_r: "Right Command",
+        Key.ctrl: "Control", Key.ctrl_l: "Left Control", Key.ctrl_r: "Right Control",
+        Key.delete: "Delete", Key.down: "Arrow Down", Key.end: "End",
+        Key.enter: "Enter", Key.esc: "Escape",
+        Key.f1: "F1", Key.f2: "F2", Key.f3: "F3", Key.f4: "F4",
+        Key.f5: "F5", Key.f6: "F6", Key.f7: "F7", Key.f8: "F8",
+        Key.f9: "F9", Key.f10: "F10", Key.f11: "F11", Key.f12: "F12",
+        Key.f13: "F13", Key.f14: "F14", Key.f15: "F15", Key.f16: "F16",
+        Key.f17: "F17", Key.f18: "F18", Key.f19: "F19", Key.f20: "F20",
+        Key.home: "Home", Key.left: "Arrow Left", Key.page_down: "Page Down",
+        Key.page_up: "Page Up", Key.right: "Arrow Right", Key.shift: "Shift",
+        Key.shift_l: "Left Shift", Key.shift_r: "Right Shift", Key.space: "Space",
+        Key.tab: "Tab", Key.up: "Arrow Up",
+        Key.media_play_pause: "Media Play Pause", Key.media_volume_mute: "Media Volume Mute",
+        Key.media_volume_down: "Volume Down", Key.media_volume_up: "Volume Up",
+        Key.media_previous: "Previous Track", Key.media_next: "Next Track",
+        Key.insert: "Insert", Key.menu: "Menu", Key.num_lock: "Num Lock",
+        Key.pause: "Pause", Key.print_screen: "Print Screen", Key.scroll_lock: "Scroll Lock"
+    }
+
     def __init__(self):
         self.recording = False
         self.playing = False
@@ -34,6 +57,7 @@ class ActionRecorder:
         self.root = tk.Tk()
         self.root.withdraw()
         self.setup_listeners()
+        print("[Info] ActionRecorder initialized and ready.")
 
     def setup_listeners(self):
         self.keyboard_listener = KeyboardListener(on_press=self.on_press)
@@ -42,54 +66,46 @@ class ActionRecorder:
         self.keyboard_controller = KeyboardController()
         self.mouse_controller = MouseController()
 
-    def record_event(self, event_info):
-        if self.recording:
-            now = time.perf_counter()
-            if self.last_event_time is None:
-                event_info['delay'] = 0
-            else:
-                event_info['delay'] = now - self.last_event_time
-
-            self.events.append(event_info)
-            self.last_event_time = now
-            print(f"Recorded {event_info['type']} event: {event_info}")
-
     def on_press(self, key):
         try:
-            if not hasattr(key, 'char'):
+            if hasattr(key, 'char'):
+                if key.char == combo_keys.ctrl_r:  # Ctrl+R
+                    if not self.recording and not self.playing:
+                        self.start_recording()
+                    elif self.recording:
+                        self.stop_recording()
+                    return
+                if key.char == combo_keys.ctrl_p:  # Ctrl+P
+                    if not self.recording and not self.playing:
+                        self.start_playback()
+                    elif self.playing:
+                        self.stop_playback()
+                    return
+
+                if key.char == combo_keys.ctrl_s:  # Ctrl+S
+                    self.command_queue.put(('Save', None))
+                    return
+                if key.char == combo_keys.ctrl_l:  # Ctrl+L
+                    self.command_queue.put(('Load', None))
+                    return
+                if key.char == combo_keys.ctrl_q:  # Ctrl+Q
+                    self.command_queue.put(('Exit', None))
+                    return
+
+            if key in self.function_keys:
+                action = self.function_keys[key]
+                if self.recording:
+                    self.record_event({
+                        'type': 'key',
+                        'key': action
+                    })
                 return
 
-            # Handle specific key combinations
-            if key.char == combo_keys.ctrl_r:  # Ctrl+R
-                if not self.recording and not self.playing:
-                    self.start_recording()
-                elif self.recording:
-                    self.stop_recording()
-                return
-
-            if key.char == combo_keys.ctrl_p:  # Ctrl+P
-                if not self.recording and not self.playing:
-                    self.start_playback()
-                elif self.playing:
-                    self.stop_playback()
-                return
-
-            # Handle control commands based on specific key combinations
-            if key.char == combo_keys.ctrl_s:  # Ctrl+S
-                self.command_queue.put(('save', None))
-                return
-            if key.char == combo_keys.ctrl_l:  # Ctrl+L
-                self.command_queue.put(('load', None))
-                return
-            if key.char == combo_keys.ctrl_q:  # Ctrl+Q
-                self.command_queue.put(('exit', None))
-                return
-
-            # Record key event if currently recording
             if self.recording:
+                key_name = getattr(key, 'char', str(key))
                 self.record_event({
                     'type': 'key',
-                    'key': key,
+                    'key': key_name,
                 })
 
         except AttributeError:
@@ -99,25 +115,32 @@ class ActionRecorder:
         self.recording = True
         self.events = []
         self.last_event_time = time.time()
-        print("Start recording...")
+        print("[Info] Recording started.")
 
     def stop_recording(self):
         self.recording = False
-        if self.events:
-            last_event = self.events[-1]
-            print(f"Last event check: {last_event}")
-            if last_event == Key.ctrl_l or last_event == Key.ctrl_r:
-                self.events.pop()
-        print("Recording ended...")
+        event_count = len(self.events)
+        print(
+            f"[Info] Recording stopped. Total events recorded: {event_count}")
 
     def start_playback(self):
         self.playing = True
-        print("Start playback...")
+        print("[Info] Playback started.")
         threading.Thread(target=self.play_events).start()
 
     def stop_playback(self):
         self.playing = False
-        print("Playback stopped...")
+        print("[Info] Playback stopped.")
+
+    def record_event(self, event_info):
+        if self.recording:
+            now = time.perf_counter()
+            delay = 0 if self.last_event_time is None else now - self.last_event_time
+            event_info['delay'] = delay
+            self.events.append(event_info)
+            self.last_event_time = now
+            event_type = event_info['type']
+            print(f"[Event Recorded] Type: {event_type}, Info: {event_info}")
 
     def handle_control_command(self, command):
         self.command_queue.put((command, None))
@@ -145,51 +168,78 @@ class ActionRecorder:
         while self.playing:
             for event in self.events:
                 if not self.playing:
-                    print("Playback halted.")
                     break
 
                 delay = max(event['delay'], 0)
-                print(f"Waiting for {delay} seconds before processing the next event.")
                 time.sleep(delay)
 
                 self.process_event(event)
 
     def process_event(self, event):
+        if 'type' not in event:
+            print("[Error] Event type is missing from the event data.")
+            return
+
         event_type = event['type']
+        print(f"[Processing] Event type: {event_type}")
+
         if event_type == 'key':
-            key = event['key']
-            if isinstance(key, keyboard.KeyCode):
-                key = key.char
-            print(f"Playing keyboard key: {key}")
-            self.keyboard_controller.press(key)
-            self.keyboard_controller.release(key)
-        elif event_type == 'move':
-            x, y = event['x'], event['y']
-            print(f"Playing mouse movement to ({x}, {y})")
-            self.mouse_controller.position = (x, y)
-        elif event_type == 'click':
-            x, y, button, pressed = event['x'], event['y'], event['button'], event['pressed']
-            print(
-                f"Playing mouse click: {'Pressed' if pressed else 'Released'} at ({x}, {y})")
-            self.mouse_controller.position = (x, y)
-            if pressed:
-                self.mouse_controller.press(button)
+            if 'key' not in event:
+                return
+
+            key_name = event['key']
+            key = None
+
+            if isinstance(key_name, Key):
+                key = key_name
             else:
-                self.mouse_controller.release(button)
+                for k, v in self.function_keys.items():
+                    if v == key_name:
+                        key = k
+                        break
+
+                if not key and isinstance(key_name, str) and len(key_name) == 1:
+                    key = KeyCode(char=key_name)
+
+            if key:
+                self.keyboard_controller.press(key)
+                self.keyboard_controller.release(key)
+            else:
+                print(f"[Error] Failed to resolve key from name: {key_name}")
+
+        elif event_type == 'move':
+            if 'x' not in event or 'y' not in event:
+                return
+            x = event['x']
+            y = event['y']
+            self.mouse_controller.position = (x, y)
+
+        elif event_type == 'click':
+            if 'button' not in event or 'pressed' not in event:
+                return
+            button = event['button']
+            pressed = event['pressed']
+            action = self.mouse_controller.press if pressed else self.mouse_controller.release
+            action(button)
+
+    def _resolve_key_name(self, key_name):
+        try:
+            if hasattr(Key, key_name.lower()):
+                return getattr(Key, key_name.lower())
+        except AttributeError:
+            pass
+
+        return KeyCode(char=key_name)
 
     def handle_commands(self):
         try:
             while True:
                 command, _ = self.command_queue.get_nowait()
-                print(f"command: {command}")
-                if command == 'save':
-                    print('save')
+                if command == 'Save':
                     self.save_events()
-                elif command == 'load':
-                    print('load')
+                elif command == 'Load':
                     self.load_events()
-                elif command == 'exit':
-                    print('exit')
+                elif command == 'Exit':
                     self.exit_app()
         except Empty:
             pass
@@ -223,7 +273,6 @@ class ActionRecorder:
         if filename:
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump([self.serialize_event(e) for e in self.events], f)
-            print(f"Events have been saved to {filename}")
 
     def load_events(self):
         filename = filedialog.askopenfilename(
@@ -234,7 +283,6 @@ class ActionRecorder:
             with open(filename, 'r', encoding='utf-8') as f:
                 raw_events = json.load(f)
             self.events = [self.deserialize_event(e) for e in raw_events]
-            print(f"Events have been loaded from {filename}")
 
     def deserialize_event(self, event):
         if 'key' in event:
@@ -244,13 +292,14 @@ class ActionRecorder:
         return event
 
     def deserialize_key(self, key_str):
-        if key_str.startswith('KeyCode(char='):
-            char_repr = key_str[len("KeyCode(char="):-1]
-            char = char_repr.strip("'")
-            return KeyCode(char=char)
+        if key_str in self.function_keys.values():
+            for key, value in self.function_keys.items():
+                if value == key_str:
+                    return key
+        elif key_str.startswith('KeyCode(char='):
+            return KeyCode(char=key_str[len("KeyCode(char="):-1].strip("'"))
         elif key_str.startswith('Key.'):
-            key_name = key_str.split('.')[1]
-            return getattr(Key, key_name)
+            return getattr(Key, key_str.split('.')[1])
         return key_str
 
     def deserialize_button(self, button_str):
@@ -273,7 +322,7 @@ class ActionRecorder:
                 self.handle_commands()
                 time.sleep(0.1)
         except tk.TclError:
-            pass  # Handle the exception if the window is closed
+            pass
 
 
 if __name__ == '__main__':
