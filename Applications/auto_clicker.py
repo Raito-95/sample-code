@@ -62,17 +62,19 @@ class MouseKeyboardControl:
                 self.keyboard_controller.release(keyboard.Key.ctrl)
                 self.print_event_time("Ctrl released and mouse clicking stopped")
             elif key.char == 'q' or key.char == '\x11':
-                self.stop_clicking_left.set()
-                self.stop_clicking_right.set()
-                self.stop_key_press.set()
-                if self.clicking_active:
-                    self.keyboard_controller.release(keyboard.Key.ctrl)
-                self.clicking_active = False
-                self.print_event_time("Exiting program")
-                return False
+                self.exit_program()
 
     def on_release(self, key):
         self.print_event_time(f"Key released: {key}")
+
+    def exit_program(self):
+        self.stop_clicking_left.set()
+        self.stop_clicking_right.set()
+        self.stop_key_press.set()
+        self.clicking_active = False
+        self.keyboard_controller.release(keyboard.Key.ctrl)
+        self.print_event_time("Exiting program")
+        raise SystemExit
 
     def start_listening(self):
         try:

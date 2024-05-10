@@ -61,8 +61,7 @@ class ActionRecorder:
 
     def setup_listeners(self):
         self.keyboard_listener = KeyboardListener(on_press=self.on_press)
-        self.mouse_listener = MouseListener(
-            on_move=self.on_move, on_click=self.on_click)
+        self.mouse_listener = MouseListener(on_move=self.on_move, on_click=self.on_click)
         self.keyboard_controller = KeyboardController()
         self.mouse_controller = MouseController()
 
@@ -119,9 +118,7 @@ class ActionRecorder:
 
     def stop_recording(self):
         self.recording = False
-        event_count = len(self.events)
-        print(
-            f"[Info] Recording stopped. Total events recorded: {event_count}")
+        print("[Info] Recording stopped.")
 
     def start_playback(self):
         self.playing = True
@@ -222,15 +219,6 @@ class ActionRecorder:
             action = self.mouse_controller.press if pressed else self.mouse_controller.release
             action(button)
 
-    def _resolve_key_name(self, key_name):
-        try:
-            if hasattr(Key, key_name.lower()):
-                return getattr(Key, key_name.lower())
-        except AttributeError:
-            pass
-
-        return KeyCode(char=key_name)
-
     def handle_commands(self):
         try:
             while True:
@@ -265,24 +253,18 @@ class ActionRecorder:
         return str(button)
 
     def save_events(self):
-        filename = filedialog.asksaveasfilename(
-            defaultextension='.json',
-            filetypes=[('JSON files', '*.json')],
-            title="Save events as..."
-        )
-        if filename:
-            with open(filename, 'w', encoding='utf-8') as f:
-                json.dump([self.serialize_event(e) for e in self.events], f)
+        try:
+            filename = filedialog.asksaveasfilename(
+                defaultextension='.json',
+                filetypes=[('JSON files', '*.json')],
+                title="Save events as..."
+            )
+            if filename:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    json.dump([self.serialize_event(e) for e in self.events], f)
+        except Exception as e:
+            print(f"[Error] Failed to save events: {str(e)}")
 
-    def load_events(self):
-        filename = filedialog.askopenfilename(
-            filetypes=[('JSON files', '*.json')],
-            title="Load events from..."
-        )
-        if filename:
-            with open(filename, 'r', encoding='utf-8') as f:
-                raw_events = json.load(f)
-            self.events = [self.deserialize_event(e) for e in raw_events]
 
     def deserialize_event(self, event):
         if 'key' in event:
@@ -307,11 +289,24 @@ class ActionRecorder:
             return getattr(Button, button_str.split('.')[1])
         return button_str
 
+    def load_events(self):
+        filename = filedialog.askopenfilename(
+            filetypes=[('JSON files', '*.json')],
+            title="Load events from..."
+        )
+        if filename:
+            with open(filename, 'r', encoding='utf-8') as f:
+                raw_events = json.load(f)
+            self.events = [self.deserialize_event(e) for e in raw_events]
+
     def exit_app(self):
-        self.keyboard_listener.stop()
-        self.mouse_listener.stop()
-        self.root.quit()
-        sys.exit(0)
+        try:
+            self.keyboard_listener.stop()
+            self.mouse_listener.stop()
+            self.root.quit()
+            sys.exit(0)
+        except Exception as e:
+            print(f"[Error] Failed to exit application cleanly: {str(e)}")
 
     def run(self):
         threading.Thread(target=self.keyboard_listener.start).start()
