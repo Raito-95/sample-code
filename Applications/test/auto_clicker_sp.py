@@ -655,10 +655,10 @@ def find_color_matches(screen, unique, tolerance=20):
 def color_printing_thread(stop_event, interval=1):
     while not stop_event.is_set():
         x, y = pyautogui.position()
-        left = max(0, x - RANGE_BOX)
-        top = max(0, y - RANGE_BOX)
-        right = min(pyautogui.size().width, x + 1 + RANGE_BOX)
-        bottom = min(pyautogui.size().height, y + 1 + RANGE_BOX)
+        left = max(0, int(x - RANGE_BOX))
+        top = max(0, int(y - RANGE_BOX))
+        right = min(pyautogui.size().width, int(x + 1 + RANGE_BOX))
+        bottom = min(pyautogui.size().height, int(y + 1 + RANGE_BOX))
 
         screen = ImageGrab.grab(bbox=(left, top, right, bottom))
         match_percentage = find_color_matches(screen, unique_colors, TOLERANCE)
@@ -681,13 +681,16 @@ def main():
                 time.sleep(0.5)
             if clicking_enabled:
                 x, y = pyautogui.position()
-                screen = ImageGrab.grab(
-                    bbox=(x - RANGE_BOX, y - RANGE_BOX, x + RANGE_BOX, y + RANGE_BOX))
+                left = int(x - RANGE_BOX)
+                top = int(y - RANGE_BOX)
+                right = int(x + RANGE_BOX)
+                bottom = int(y + RANGE_BOX)
+
+                screen = ImageGrab.grab(bbox=(left, top, right, bottom))
                 match_percentage = find_color_matches(screen, unique_colors)
                 if match_percentage >= 90.0:
                     pyautogui.click()
-                    print(
-                        f"Clicked at ({x}, {y}) with {match_percentage}% match.")
+                    print(f"Clicked at ({x}, {y}) with {match_percentage}% match.")
                     time.sleep(0.1)
     except KeyboardInterrupt:
         print("Keyboard interrupt detected. Exiting...")
