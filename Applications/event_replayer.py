@@ -2,7 +2,6 @@ import sys
 import json
 import time
 import threading
-from collections import namedtuple
 from queue import Queue, Empty
 from tkinter import filedialog
 import tkinter as tk
@@ -10,18 +9,6 @@ import tkinter as tk
 from pynput import keyboard
 from pynput.keyboard import Listener as KeyboardListener, Controller as KeyboardController, Key, KeyCode
 from pynput.mouse import Listener as MouseListener, Controller as MouseController, Button
-
-ComboKeys = namedtuple('ComboKeys', ['ctrl_a', 'ctrl_b', 'ctrl_c', 'ctrl_d', 'ctrl_e',
-                                     'ctrl_f', 'ctrl_g', 'ctrl_h', 'ctrl_i', 'ctrl_j',
-                                     'ctrl_k', 'ctrl_l', 'ctrl_m', 'ctrl_n', 'ctrl_o',
-                                     'ctrl_p', 'ctrl_q', 'ctrl_r', 'ctrl_s', 'ctrl_t',
-                                     'ctrl_u', 'ctrl_v', 'ctrl_w', 'ctrl_x', 'ctrl_y', 'ctrl_z'])
-
-combo_keys = ComboKeys('\x01', '\x02', '\x03', '\x04', '\x05',
-                       '\x06', '\x07', '\x08', '\x09', '\x0a',
-                       '\x0b', '\x0c', '\x0d', '\x0e', '\x0f',
-                       '\x10', '\x11', '\x12', '\x13', '\x14',
-                       '\x15', '\x16', '\x17', '\x18', '\x19', '\x1a')
 
 
 class ActionRecorder:
@@ -35,8 +22,6 @@ class ActionRecorder:
         Key.f1: "F1", Key.f2: "F2", Key.f3: "F3", Key.f4: "F4",
         Key.f5: "F5", Key.f6: "F6", Key.f7: "F7", Key.f8: "F8",
         Key.f9: "F9", Key.f10: "F10", Key.f11: "F11", Key.f12: "F12",
-        Key.f13: "F13", Key.f14: "F14", Key.f15: "F15", Key.f16: "F16",
-        Key.f17: "F17", Key.f18: "F18", Key.f19: "F19", Key.f20: "F20",
         Key.home: "Home", Key.left: "Arrow Left", Key.page_down: "Page Down",
         Key.page_up: "Page Up", Key.right: "Arrow Right", Key.shift: "Shift",
         Key.shift_l: "Left Shift", Key.shift_r: "Right Shift", Key.space: "Space",
@@ -67,29 +52,28 @@ class ActionRecorder:
 
     def on_press(self, key):
         try:
-            if hasattr(key, 'char'):
-                if key.char == combo_keys.ctrl_r:  # Ctrl+R
-                    if not self.recording and not self.playing:
-                        self.start_recording()
-                    elif self.recording:
-                        self.stop_recording()
-                    return
-                if key.char == combo_keys.ctrl_p:  # Ctrl+P
-                    if not self.recording and not self.playing:
-                        self.start_playback()
-                    elif self.playing:
-                        self.stop_playback()
-                    return
+            if key == Key.delete:
+                if not self.recording and not self.playing:
+                    self.start_recording()
+                elif self.recording:
+                    self.stop_recording()
+                return
+            if key == Key.end:
+                if not self.recording and not self.playing:
+                    self.start_playback()
+                elif self.playing:
+                    self.stop_playback()
+                return
 
-                if key.char == combo_keys.ctrl_s:  # Ctrl+S
-                    self.command_queue.put(('Save', None))
-                    return
-                if key.char == combo_keys.ctrl_l:  # Ctrl+L
-                    self.command_queue.put(('Load', None))
-                    return
-                if key.char == combo_keys.ctrl_q:  # Ctrl+Q
-                    self.command_queue.put(('Exit', None))
-                    return
+            if key == Key.insert:
+                self.command_queue.put(('Save', None))
+                return
+            if key == Key.home:
+                self.command_queue.put(('Load', None))
+                return
+            if key == Key.page_down:
+                self.command_queue.put(('Exit', None))
+                return
 
             if key in self.function_keys:
                 action = self.function_keys[key]
