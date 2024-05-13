@@ -9,7 +9,8 @@ class MouseKeyboardControl:
         self.keyboard_controller = keyboard.Controller()
         self.stop_clicking_left = threading.Event()
         self.stop_clicking_right = threading.Event()
-        self.stop_key_press = threading.Event()
+        self.stop_key_press_f8 = threading.Event()
+        self.stop_key_press_f7 = threading.Event()
         self.lock = Lock()
         self.clicking_active = False
         self.timer = None
@@ -22,46 +23,54 @@ class MouseKeyboardControl:
             with self.lock:
                 self.mouse_controller.click(mouse.Button.left)
                 self.print_event_time("Left mouse clicked")
-            self.stop_clicking_left.wait(0.2)
+            self.stop_clicking_left.wait(0.4)
 
     def click_right(self):
         while not self.stop_clicking_right.is_set():
             with self.lock:
                 self.mouse_controller.click(mouse.Button.right)
                 self.print_event_time("Right mouse clicked")
-            self.stop_clicking_right.wait(1)
+            self.stop_clicking_right.wait(0.6)
 
-    def press_key(self):
-        while not self.stop_key_press.is_set():
+    def press_key_f8(self):
+        while not self.stop_key_press_f8.is_set():
             with self.lock:
-                self.keyboard_controller.press(keyboard.Key.f10)
-                self.keyboard_controller.release(keyboard.Key.f10)
-                self.print_event_time("F10 key pressed")
-                self.keyboard_controller.press(keyboard.Key.f9)
-                self.keyboard_controller.release(keyboard.Key.f9)
-                self.print_event_time("F9 key pressed")
-            self.stop_key_press.wait(10)
+                self.keyboard_controller.press(keyboard.Key.f8)
+                self.keyboard_controller.release(keyboard.Key.f8)
+                self.print_event_time("F8 key pressed")
+            self.stop_key_press_f8.wait(10)
+            
+    def press_key_f7(self):
+        while not self.stop_key_press_f7.is_set():
+            with self.lock:
+                self.keyboard_controller.press(keyboard.Key.f7)
+                self.keyboard_controller.release(keyboard.Key.f7)
+                self.print_event_time("F7 key pressed")
+            self.stop_key_press_f7.wait(1)
 
     def on_press(self, key):
         if hasattr(key, 'char') and key.char is not None:
-            if key.char == 'z' and not self.clicking_active:
+            if key.char == '\x1A' and not self.clicking_active:
                 self.stop_clicking_left.clear()
                 self.stop_clicking_right.clear()
-                self.stop_key_press.clear()
+                self.stop_key_press_f8.clear()
+                self.stop_key_press_f7.clear()
                 self.clicking_active = True
                 threading.Thread(target=self.click_left).start()
                 threading.Thread(target=self.click_right).start()
-                threading.Thread(target=self.press_key).start()
+                threading.Thread(target=self.press_key_f8).start()
+                threading.Thread(target=self.press_key_f7).start()
                 self.keyboard_controller.press(keyboard.Key.ctrl)
                 self.print_event_time("Ctrl pressed and mouse clicking started")
-            elif key.char == 'x' or key.char == '\x18':
+            elif key.char == '\x18':
                 self.stop_clicking_left.set()
                 self.stop_clicking_right.set()
-                self.stop_key_press.set()
+                self.stop_key_press_f8.set()
+                self.stop_key_press_f7.set()
                 self.clicking_active = False
                 self.keyboard_controller.release(keyboard.Key.ctrl)
                 self.print_event_time("Ctrl released and mouse clicking stopped")
-            elif key.char == 'q' or key.char == '\x11':
+            elif key.char == '\x11':
                 self.exit_program()
 
     def on_release(self, key):
@@ -70,7 +79,8 @@ class MouseKeyboardControl:
     def exit_program(self):
         self.stop_clicking_left.set()
         self.stop_clicking_right.set()
-        self.stop_key_press.set()
+        self.stop_key_press_f8.set()
+        self.stop_key_press_f7.set()
         self.clicking_active = False
         self.keyboard_controller.release(keyboard.Key.ctrl)
         self.print_event_time("Exiting program")
