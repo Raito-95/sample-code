@@ -12,27 +12,6 @@ from pynput.mouse import Listener as MouseListener, Controller as MouseControlle
 
 
 class ActionRecorder:
-    function_keys = {
-        Key.alt: "Alt", Key.alt_l: "Left Alt", Key.alt_r: "Right Alt",
-        Key.alt_gr: "AltGr", Key.backspace: "Backspace", Key.caps_lock: "Caps Lock",
-        Key.cmd: "Command", Key.cmd_l: "Left Command", Key.cmd_r: "Right Command",
-        Key.ctrl: "Control", Key.ctrl_l: "Left Control", Key.ctrl_r: "Right Control",
-        Key.delete: "Delete", Key.down: "Arrow Down", Key.end: "End",
-        Key.enter: "Enter", Key.esc: "Escape",
-        Key.f1: "F1", Key.f2: "F2", Key.f3: "F3", Key.f4: "F4",
-        Key.f5: "F5", Key.f6: "F6", Key.f7: "F7", Key.f8: "F8",
-        Key.f9: "F9", Key.f10: "F10", Key.f11: "F11", Key.f12: "F12",
-        Key.home: "Home", Key.left: "Arrow Left", Key.page_down: "Page Down",
-        Key.page_up: "Page Up", Key.right: "Arrow Right", Key.shift: "Shift",
-        Key.shift_l: "Left Shift", Key.shift_r: "Right Shift", Key.space: "Space",
-        Key.tab: "Tab", Key.up: "Arrow Up",
-        Key.media_play_pause: "Media Play Pause", Key.media_volume_mute: "Media Volume Mute",
-        Key.media_volume_down: "Volume Down", Key.media_volume_up: "Volume Up",
-        Key.media_previous: "Previous Track", Key.media_next: "Next Track",
-        Key.insert: "Insert", Key.menu: "Menu", Key.num_lock: "Num Lock",
-        Key.pause: "Pause", Key.print_screen: "Print Screen", Key.scroll_lock: "Scroll Lock"
-    }
-
     def __init__(self):
         self.recording = False
         self.playing = False
@@ -53,46 +32,35 @@ class ActionRecorder:
     def on_press(self, key):
         try:
             if key == Key.delete:
-                if not self.recording and not self.playing:
-                    self.start_recording()
-                elif self.recording:
-                    self.stop_recording()
-                return
-            if key == Key.end:
-                if not self.recording and not self.playing:
-                    self.start_playback()
-                elif self.playing:
-                    self.stop_playback()
-                return
-
-            if key == Key.insert:
+                self.toggle_recording()
+            elif key == Key.end:
+                self.toggle_playback()
+            elif key == Key.insert:
                 self.command_queue.put(('Save', None))
-                return
-            if key == Key.home:
+            elif key == Key.home:
                 self.command_queue.put(('Load', None))
-                return
-            if key == Key.page_down:
+            elif key == Key.page_down:
                 self.command_queue.put(('Exit', None))
-                return
-
-            if key in self.function_keys:
-                action = self.function_keys[key]
-                if self.recording:
+            elif self.recording:
+                if isinstance(key, keyboard.Key):
                     self.record_event({
                         'type': 'key',
-                        'key': action
+                        'key': key.name
                     })
-                return
-
-            if self.recording:
-                key_name = getattr(key, 'char', str(key))
-                self.record_event({
-                    'type': 'key',
-                    'key': key_name,
-                })
-
+                else:
+                    key_name = getattr(key, 'char', str(key))
+                    self.record_event({
+                        'type': 'key',
+                        'key': key_name,
+                    })
         except AttributeError:
             pass
+
+    def toggle_recording(self):
+        if not self.recording and not self.playing:
+            self.start_recording()
+        elif self.recording:
+            self.stop_recording()
 
     def start_recording(self):
         self.recording = True
@@ -103,6 +71,12 @@ class ActionRecorder:
     def stop_recording(self):
         self.recording = False
         print("[Info] Recording stopped.")
+
+    def toggle_playback(self):
+        if not self.recording and not self.playing:
+            self.start_playback()
+        elif self.playing:
+            self.stop_playback()
 
     def start_playback(self):
         self.playing = True
@@ -162,46 +136,34 @@ class ActionRecorder:
             return
 
         event_type = event['type']
-        print(f"[Processing] Event type: {event_type}")
 
         if event_type == 'key':
-            if 'key' not in event:
-                return
-
-            key_name = event['key']
-            key = None
-
-            if isinstance(key_name, Key):
-                key = key_name
-            else:
-                for k, v in self.function_keys.items():
-                    if v == key_name:
-                        key = k
-                        break
-
-                if not key and isinstance(key_name, str) and len(key_name) == 1:
-                    key = KeyCode(char=key_name)
+            key = event['key']
+            print(f"[Processing] Event type: key, key: {key}")
+            if isinstance(key, str) and hasattr(Key, key):
+                key = getattr(Key, key)
 
             if key:
                 self.keyboard_controller.press(key)
                 self.keyboard_controller.release(key)
             else:
-                print(f"[Error] Failed to resolve key from name: {key_name}")
+                print(f"[Error] Failed to resolve key from name: {key}")
 
         elif event_type == 'move':
             if 'x' not in event or 'y' not in event:
+                print("[Error] Missing coordinates for mouse movement.")
                 return
-            x = event['x']
-            y = event['y']
+            x, y = event['x'], event['y']
             self.mouse_controller.position = (x, y)
 
         elif event_type == 'click':
-            if 'button' not in event or 'pressed' not in event:
-                return
             button = event['button']
-            pressed = event['pressed']
-            action = self.mouse_controller.press if pressed else self.mouse_controller.release
-            action(button)
+            print(f"[Processing] Event type: click, button: {button}")
+            if button:
+                action = self.mouse_controller.press if event['pressed'] else self.mouse_controller.release
+                action(button)
+            else:
+                print(f"[Error] Failed to resolve button from name: {button}")
 
     def handle_commands(self):
         try:
@@ -218,23 +180,35 @@ class ActionRecorder:
 
     def serialize_event(self, event):
         event_copy = event.copy()
-        if 'key' in event_copy:
-            event_copy['key'] = self.serialize_key(event_copy['key'])
-        if 'button' in event_copy:
-            event_copy['button'] = self.serialize_button(event_copy['button'])
+        for attr in ['key', 'button']:
+            if attr in event_copy:
+                event_copy[attr] = self.serialize_attribute(event_copy[attr])
         return event_copy
 
-    def serialize_key(self, key):
-        if hasattr(key, 'char'):
-            return f"KeyCode(char={repr(key.char)})"
-        elif isinstance(key, keyboard.Key):
-            return f"Key.{key.name}"
-        return str(key)
+    def serialize_attribute(self, attribute):
+        if isinstance(attribute, KeyCode) and hasattr(attribute, 'char'):
+            return f"KeyCode(char={repr(attribute.char)})"
+        elif isinstance(attribute, Key):
+            return f"Key.{attribute.name}"
+        elif isinstance(attribute, Button):
+            return f"Button.{attribute.name}"
+        return str(attribute)
 
-    def serialize_button(self, button):
-        if isinstance(button, Button):
-            return f"Button.{button.name}"
-        return str(button)
+    def deserialize_event(self, event):
+        for attr in ['key', 'button']:
+            if attr in event:
+                event[attr] = self.deserialize_attribute(event[attr], attr)
+        return event
+
+    def deserialize_attribute(self, attribute_str, attr_type):
+        module = Key if attr_type == 'key' else Button
+        if attribute_str.startswith(f'{attr_type.title()}.'):
+            item_name = attribute_str.split('.')[1]
+            return getattr(module, item_name)
+        elif attr_type == 'key' and attribute_str.startswith('KeyCode(char='):
+            char = attribute_str[len("KeyCode(char="):-1].strip("'")
+            return KeyCode(char=char)
+        return attribute_str
 
     def save_events(self):
         try:
@@ -249,39 +223,18 @@ class ActionRecorder:
         except Exception as e:
             print(f"[Error] Failed to save events: {str(e)}")
 
-
-    def deserialize_event(self, event):
-        if 'key' in event:
-            event['key'] = self.deserialize_key(event['key'])
-        if 'button' in event:
-            event['button'] = self.deserialize_button(event['button'])
-        return event
-
-    def deserialize_key(self, key_str):
-        if key_str in self.function_keys.values():
-            for key, value in self.function_keys.items():
-                if value == key_str:
-                    return key
-        elif key_str.startswith('KeyCode(char='):
-            return KeyCode(char=key_str[len("KeyCode(char="):-1].strip("'"))
-        elif key_str.startswith('Key.'):
-            return getattr(Key, key_str.split('.')[1])
-        return key_str
-
-    def deserialize_button(self, button_str):
-        if button_str.startswith('Button.'):
-            return getattr(Button, button_str.split('.')[1])
-        return button_str
-
     def load_events(self):
-        filename = filedialog.askopenfilename(
-            filetypes=[('JSON files', '*.json')],
-            title="Load events from..."
-        )
-        if filename:
-            with open(filename, 'r', encoding='utf-8') as f:
-                raw_events = json.load(f)
-            self.events = [self.deserialize_event(e) for e in raw_events]
+        try:
+            filename = filedialog.askopenfilename(
+                filetypes=[('JSON files', '*.json')],
+                title="Load events from..."
+            )
+            if filename:
+                with open(filename, 'r', encoding='utf-8') as f:
+                    raw_events = json.load(f)
+                self.events = [self.deserialize_event(e) for e in raw_events]
+        except Exception as e:
+            print(f"[Error] Failed to load events: {str(e)}")
 
     def exit_app(self):
         try:
