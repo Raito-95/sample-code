@@ -1,28 +1,53 @@
+import cv2
 from PIL import ImageGrab
 import numpy as np
-import cv2
 
-# Capture a screen image
-image = ImageGrab.grab()
-width, height = image.size  # Get the width and height of the image
 
-# Define a video writer
-fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Define the video codec # type: ignore
-output_filename = 'screen_capture.avi'  # Output video filename
-frame_rate = 30  # Frame rate (frames per second)
-video = cv2.VideoWriter(output_filename, fourcc, frame_rate, (width, height))  # Create a video writer
+def capture_screen_frame():
+    """Capture the current screen and return it as a BGR image."""
+    img_rgb = ImageGrab.grab()
+    img_bgr = cv2.cvtColor(np.array(img_rgb), cv2.COLOR_RGB2BGR)
+    return img_bgr
 
-# Start capturing the screen
-while True:
-    img_rgb = ImageGrab.grab()  # Capture a screen image (RGB mode)
-    img_bgr = cv2.cvtColor(np.array(img_rgb), cv2.COLOR_RGB2BGR)  # Convert to BGR mode, which OpenCV uses
-    video.write(img_bgr)  # Write the image to the video file
-    cv2.imshow('Screen Capture', img_bgr)  # Display the captured image in a window
 
-    # Press 'q' key to exit the loop
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+def initialize_video_writer(output_filename, frame_size, frame_rate=30, codec='XVID'):
+    """Initialize and return a video writer object."""
+    fourcc = cv2.VideoWriter_fourcc(*codec)
+    return cv2.VideoWriter(output_filename, fourcc, frame_rate, frame_size)
 
-# Release the video writer and close the video file
-video.release()
-cv2.destroyAllWindows()
+
+def main():
+    try:
+        # Define output video parameters
+        output_filename = 'screen_capture.avi'
+        frame_rate = 30
+
+        # Capture an initial frame to get screen dimensions
+        initial_frame = capture_screen_frame()
+        height, width, _ = initial_frame.shape
+        frame_size = (width, height)
+
+        # Initialize video writer
+        video_writer = initialize_video_writer(
+            output_filename, frame_size, frame_rate)
+
+        print("Starting screen capture. Press 'Ctrl+C' to stop.")
+
+        while True:
+            frame = capture_screen_frame()
+            video_writer.write(frame)
+
+    except KeyboardInterrupt:
+        print("Screen capture stopped by user.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    finally:
+        # Release the video writer
+        video_writer.release()
+        print(f"Video saved as {output_filename}")
+
+
+if __name__ == "__main__":
+    main()

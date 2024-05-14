@@ -1,85 +1,49 @@
+import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from PIL import ImageGrab
 import numpy as np
 import cv2
 import pyautogui
-from screeninfo import get_monitors
+
 
 class ScreenRecorderApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Screen Recorder")
-        self.root.geometry("300x300")
+        self.root.geometry("250x250")
         self.root.configure(bg="#f0f0f0")
 
-        self.rect_id = None
         button_font = ("Arial", 12)
         button_bg = "#e0e0e0"
         button_fg = "#333333"
 
-        self.start_button = tk.Button(root, text="Start Recording", command=self.start_recording, font=button_font, bg=button_bg, fg=button_fg)
-        self.start_button.pack(pady=5)
+        self.select_area_button = tk.Button(root, text="Select Recording Area", command=self.start_select_area,
+                                            font=button_font, bg=button_bg, fg=button_fg)
+        self.select_area_button.pack(pady=10)
 
-        self.stop_button = tk.Button(root, text="Stop Recording", command=self.stop_recording, font=button_font, bg=button_bg, fg=button_fg, state=tk.DISABLED)
-        self.stop_button.pack(pady=5)
+        self.start_button = tk.Button(root, text="Start Recording", command=self.start_recording,
+                                      font=button_font, bg=button_bg, fg=button_fg, state=tk.DISABLED)
+        self.start_button.pack(pady=10)
 
-        self.full_screen_button = tk.Button(root, text="Record Full Screen", command=self.record_full_screen, font=button_font, bg=button_bg, fg=button_fg)
-        self.full_screen_button.pack(pady=5)
+        self.stop_button = tk.Button(root, text="Stop Recording", command=self.stop_recording,
+                                     font=button_font, bg=button_bg, fg=button_fg, state=tk.DISABLED)
+        self.stop_button.pack(pady=10)
 
-        self.save_dir_button = tk.Button(root, text="Set Save Directory", command=self.set_save_directory, font=button_font, bg=button_bg, fg=button_fg)
-        self.save_dir_button.pack(pady=5)
+        self.exit_button = tk.Button(root, text="Exit Program", command=self.exit_program,
+                                     font=button_font, bg=button_bg, fg=button_fg)
+        self.exit_button.pack(pady=10)
 
-        self.selected_area_button = tk.Button(root, text="Select Recording Area", command=self.start_select_area, font=button_font, bg=button_bg, fg=button_fg)
-        self.selected_area_button.pack(pady=5)
-
-        self.exit_button = tk.Button(root, text="Exit Program", command=self.exit_program, font=button_font, bg=button_bg, fg=button_fg)
-        self.exit_button.pack(pady=5)
-
-        self.recording_status = tk.Label(root, text="Status: Not Recording", bg="#f0f0f0", fg="#333333")
+        self.recording_status = tk.Label(
+            root, text="Status: Not Recording", bg="#f0f0f0", fg="#333333")
         self.recording_status.pack(pady=10)
 
+        self.root.protocol("WM_DELETE_WINDOW", self.exit_program)
         self.root.after(10, self.update)
 
         self.rect = None
-        self.output_filename = ""
+        self.video_writer = None
         self.recording = False
-
-    def record_full_screen(self):
-        monitor = get_monitors()[0]
-        self.rect = (0, 0, monitor.width, monitor.height)
-        self.start_recording()
-
-    def start_recording(self):
-        if not self.output_filename:
-            messagebox.showwarning("Warning", "Please set the save directory before starting recording.")
-            return
-
-        if self.rect is None:
-            messagebox.showwarning("Warning", "Please select recording area before starting recording.")
-            return
-
-        if len(self.rect) != 4 or not all(isinstance(n, int) for n in self.rect):
-            messagebox.showwarning("Warning", "Recording area is not set correctly.")
-            return
-
-        fourcc = cv2.VideoWriter_fourcc(*"XVID")
-        self.video_writer = cv2.VideoWriter(self.output_filename, fourcc, 30.0, (self.rect[2] - self.rect[0], self.rect[3] - self.rect[1]))
-
-        self.recording = True
-        self.start_button.config(state=tk.DISABLED)
-        self.stop_button.config(state=tk.NORMAL)
-        self.recording_status.config(text="Status: Recording")
-
-    def stop_recording(self):
-        self.recording = False
-        self.video_writer.release()
-        self.start_button.config(state=tk.NORMAL)
-        self.stop_button.config(state=tk.DISABLED)
-        self.recording_status.config(text="Status: Not Recording")
-
-    def set_save_directory(self):
-        self.output_filename = filedialog.asksaveasfilename(defaultextension=".wav", filetypes=[("WAV files", "*.wav")])
 
     def start_select_area(self):
         self.selection_window = tk.Toplevel(self.root)
@@ -106,6 +70,7 @@ class ScreenRecorderApp:
         self.selection_window.unbind("<B1-Motion>")
         self.selection_window.unbind("<ButtonRelease-1>")
         self.selection_window.destroy()
+        self.start_button.config(state=tk.NORMAL)
 
     def draw_rectangle(self):
         if self.rect_id:
@@ -113,15 +78,55 @@ class ScreenRecorderApp:
 
         if self.rect and len(self.rect) == 4:
             normalized_rect = (
-                min(self.rect[0], self.rect[2]), 
+                min(self.rect[0], self.rect[2]),
                 min(self.rect[1], self.rect[3]),
-                max(self.rect[0], self.rect[2]), 
+                max(self.rect[0], self.rect[2]),
                 max(self.rect[1], self.rect[3])
             )
-            self.rect_id = self.selection_canvas.create_rectangle(normalized_rect, outline="red", width=5)
+            self.rect_id = self.selection_canvas.create_rectangle(
+                normalized_rect, outline="red", width=5)
         else:
             print("Rectangle coordinates are not set properly.")
-            
+
+    def start_recording(self):
+        if self.rect is None:
+            messagebox.showwarning(
+                "Warning", "Please select recording area before starting recording.")
+            return
+
+        if len(self.rect) != 4 or not all(isinstance(n, int) for n in self.rect):
+            messagebox.showwarning(
+                "Warning", "Recording area is not set correctly.")
+            return
+
+        fourcc = cv2.VideoWriter_fourcc(*"XVID")
+        temp_filename = "temp_screen_capture.avi"
+        self.video_writer = cv2.VideoWriter(
+            temp_filename, fourcc, 30.0, (self.rect[2] - self.rect[0], self.rect[3] - self.rect[1]))
+
+        self.recording = True
+        self.start_button.config(state=tk.DISABLED)
+        self.stop_button.config(state=tk.NORMAL)
+        self.select_area_button.config(state=tk.DISABLED)
+        self.recording_status.config(text="Status: Recording")
+
+    def stop_recording(self):
+        self.recording = False
+        self.video_writer.release()
+        self.start_button.config(state=tk.DISABLED)
+        self.stop_button.config(state=tk.DISABLED)
+        self.select_area_button.config(state=tk.NORMAL)
+        self.recording_status.config(text="Status: Not Recording")
+
+        save_path = filedialog.asksaveasfilename(
+            defaultextension=".avi", filetypes=[("AVI files", "*.avi")])
+        if save_path:
+            os.rename("temp_screen_capture.avi", save_path)
+            messagebox.showinfo("Info", f"Recording saved to: {save_path}")
+        else:
+            os.remove("temp_screen_capture.avi")
+            messagebox.showinfo("Info", "Recording discarded.")
+
     def update(self):
         if self.recording and self.rect is not None:
             screenshot = ImageGrab.grab(bbox=self.rect)
@@ -138,16 +143,17 @@ class ScreenRecorderApp:
 
         self.root.after(10, self.update)
 
-
     def run(self):
         self.root.mainloop()
 
     def exit_program(self):
         if self.recording:
-            messagebox.showwarning("Warning", "Please stop the recording before exiting the program.")
+            messagebox.showwarning(
+                "Warning", "Please stop the recording before exiting the program.")
             return
 
         self.root.destroy()
+
 
 if __name__ == "__main__":
     root = tk.Tk()

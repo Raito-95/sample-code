@@ -96,11 +96,11 @@ def monitor_clipboard(show_images=False):
                         print("--------------------------------------------------")
                     else:
                         # Translate the text and print it
-                        # translated_text = translate_text(extracted_text)
+                        translated_text = translate_text(extracted_text)
                         translated_text_free = translate_text_free(extracted_text)
                         print(extracted_text)
                         print('**********')
-                        # print(f'Paid: {translated_text}')
+                        print(f'Paid: {translated_text}')
                         print('**********')
                         print(f'Free: {translated_text_free}')
                         print("--------------------------------------------------")

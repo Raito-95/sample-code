@@ -1,14 +1,19 @@
 import os
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, UnidentifiedImageError
 
-def enhance_image(input_frame, enhancer_class, factor, save_path):
+
+def enhance_image(input_frame, enhancer_cls, enhance_factor, save_filepath):
     """
     Enhance an image with a given factor using a specific PIL enhancer class and save it.
     """
-    enhancer = enhancer_class(input_frame)
-    enhanced_image = enhancer.enhance(factor)
-    enhanced_image.save(save_path)
-    print(f'Saved image to {save_path}, Enhancement factor: {factor}')
+    try:
+        enhancer = enhancer_cls(input_frame)
+        enhanced_image = enhancer.enhance(enhance_factor)
+        enhanced_image.save(save_filepath)
+        print(
+            f'Saved image to {save_filepath}, Enhancement factor: {enhance_factor}')
+    except Exception as e:
+        print(f"Failed to enhance image {save_filepath}: {e}")
 
 
 def get_images_list(directory, extensions):
@@ -46,14 +51,18 @@ for name in enhancement_types.keys():
 images_list = get_images_list(current_path, image_extensions)
 for image_name in images_list:
     image_path = os.path.join(current_path, image_name)
-    frame = Image.open(image_path)
+    try:
+        frame = Image.open(image_path)
+    except UnidentifiedImageError:
+        print(f"Cannot identify image file {image_path}")
+        continue
 
-    for enhancer_name, enhancer_class in enhancement_types.items():
+    for enhancer_name, enhancer_cls in enhancement_types.items():
         enhancer_folder = os.path.join(data_path, enhancer_name)
-        factor = 0.5
+        enhance_factor = 0.5
 
         for count in range(6):
-            save_path = os.path.join(
+            save_filepath = os.path.join(
                 enhancer_folder, f"{os.path.splitext(image_name)[0]}_{enhancer_name}_{count + 1}.png")
-            enhance_image(frame, enhancer_class, factor, save_path)
-            factor += 0.3
+            enhance_image(frame, enhancer_cls, enhance_factor, save_filepath)
+            enhance_factor += 0.3

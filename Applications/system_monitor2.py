@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLa
 from PyQt5.QtGui import QMouseEvent, QPainter, QPen, QColor, QPainterPath
 from PyQt5.QtCore import QTimer, Qt, QPoint
 
+
 class LineGraphWidget(QWidget):
     def __init__(self, parent=None, line_color=QColor(5, 184, 204), dynamic_max=False):
         super(LineGraphWidget, self).__init__(parent)
@@ -22,7 +23,9 @@ class LineGraphWidget(QWidget):
         painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 50))
 
         # Determine the max value based on dynamic_max flag
-        max_value = max(self.usage_data) if self.dynamic_max and self.usage_data else 100
+        if not self.usage_data:
+            return
+        max_value = max(self.usage_data) if self.dynamic_max else 100
 
         # Function to scale the height relative to the max value
         def scaled_height(value):
@@ -30,18 +33,18 @@ class LineGraphWidget(QWidget):
 
         # Create a path for the line graph
         path = QPainterPath()
-        if len(self.usage_data) > 1:
-            step = w / (len(self.usage_data) - 1)
-            path.moveTo(0, scaled_height(self.usage_data[0]))
-            for i in range(1, len(self.usage_data)):
-                path.lineTo(int(i * step), scaled_height(self.usage_data[i]))
+        step = w / max(len(self.usage_data) - 1, 1)
+        path.moveTo(0, scaled_height(self.usage_data[0]))
+        for i in range(1, len(self.usage_data)):
+            path.lineTo(int(i * step), scaled_height(self.usage_data[i]))
 
         # Draw the filled area under the line
         fill_path = QPainterPath(path)
         fill_path.lineTo(w, h)
         fill_path.lineTo(0, h)
         fill_path.closeSubpath()
-        painter.fillPath(fill_path, QColor(self.line_color.red(), self.line_color.green(), self.line_color.blue(), 50))
+        painter.fillPath(fill_path, QColor(self.line_color.red(
+        ), self.line_color.green(), self.line_color.blue(), 50))
 
         # Draw the line graph
         painter.setPen(QPen(self.line_color, 2))
@@ -52,6 +55,7 @@ class LineGraphWidget(QWidget):
         if len(self.usage_data) > 100:
             self.usage_data.pop(0)
         self.update()  # Trigger a repaint
+
 
 class SystemMonitor(QMainWindow):
     def __init__(self, app):
@@ -84,13 +88,15 @@ class SystemMonitor(QMainWindow):
     def init_ui(self):
         self.setWindowTitle("System Monitor")
         self.setGeometry(0, 0, 220, 300)
-        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.Tool)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint |
+                            Qt.FramelessWindowHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
         self.pin_button = QPushButton(self)
         self.pin_button.setCheckable(True)
         self.pin_button.setChecked(True)
-        self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+        self.pin_button.setIcon(
+            self.style().standardIcon(QStyle.SP_DialogApplyButton))
         self.pin_button.setStyleSheet("background-color: green;")
         self.pin_button.clicked.connect(self.toggle_movable)
         self.pin_button.setGeometry(190, 10, 20, 20)
@@ -98,10 +104,12 @@ class SystemMonitor(QMainWindow):
     def toggle_movable(self):
         self.is_movable = not self.is_movable
         if self.is_movable:
-            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+            self.pin_button.setIcon(
+                self.style().standardIcon(QStyle.SP_DialogApplyButton))
             self.pin_button.setStyleSheet("background-color: green;")
         else:
-            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogCancelButton))
+            self.pin_button.setIcon(
+                self.style().standardIcon(QStyle.SP_DialogCancelButton))
             self.pin_button.setStyleSheet("background-color: red;")
 
     def mousePressEvent(self, event: QMouseEvent):
@@ -152,8 +160,10 @@ class SystemMonitor(QMainWindow):
         self.label_network = self.create_label()
         self.layout.addWidget(self.label_network)
 
-        self.upload_graph = LineGraphWidget(self.central_widget, line_color=QColor(255, 120, 50), dynamic_max=True)  # Orange for upload
-        self.download_graph = LineGraphWidget(self.central_widget, line_color=QColor(150, 50, 200), dynamic_max=True)  # Purple for download
+        self.upload_graph = LineGraphWidget(self.central_widget, line_color=QColor(
+            255, 120, 50), dynamic_max=True)  # Orange for upload
+        self.download_graph = LineGraphWidget(self.central_widget, line_color=QColor(
+            150, 50, 200), dynamic_max=True)  # Purple for download
         self.layout.addWidget(self.upload_graph)
         self.layout.addWidget(self.download_graph)
 
@@ -195,6 +205,9 @@ class SystemMonitor(QMainWindow):
 
     def update_network_info(self):
         network = psutil.net_io_counters()
+        if not hasattr(self, 'last_upload'):
+            self.last_upload = network.bytes_sent / 1024
+            self.last_download = network.bytes_recv / 1024
         upload = (network.bytes_sent / 1024) - self.last_upload
         download = (network.bytes_recv / 1024) - self.last_download
 
@@ -213,7 +226,8 @@ class SystemMonitor(QMainWindow):
         else:
             download_unit = "KB/s"
 
-        self.label_network.setText(f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}")
+        self.label_network.setText(
+            f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}")
         self.upload_graph.update_usage(upload)
         self.download_graph.update_usage(download)
 
@@ -227,7 +241,8 @@ class SystemMonitor(QMainWindow):
         if gpu_info:
             gpu_usage = gpu_info.load * 100
             gpu_temp = gpu_info.temperature
-            self.label_gpu.setText(f"GPU: {gpu_usage:.1f}% - Temp: {gpu_temp}°C")
+            self.label_gpu.setText(
+                f"GPU: {gpu_usage:.1f}% - Temp: {gpu_temp}°C")
             self.gpu_graph.update_usage(gpu_usage)
 
     def update_memory_info(self):
@@ -235,7 +250,8 @@ class SystemMonitor(QMainWindow):
         mem_usage = mem.percent
         mem_used_gb = mem.used / 1024 / 1024 / 1024
         mem_total_gb = mem.total / 1024 / 1024 / 1024
-        self.label_mem.setText(f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB")
+        self.label_mem.setText(
+            f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB")
         self.memory_graph.update_usage(mem_usage)
 
     def update_disk_info(self):
@@ -245,19 +261,23 @@ class SystemMonitor(QMainWindow):
                 disk_usage_percent = disk_usage.percent
                 disk_total_gb = disk_usage.total / (1024 ** 3)
                 disk_used_gb = disk_usage.used / (1024 ** 3)
-                self.label_disk[index].setText(f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
+                self.label_disk[index].setText(
+                    f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
                 self.disk_graphs[index].update_usage(disk_usage_percent)
 
     def set_geometry_to_bottom(self):
         desktop = QDesktopWidget()
         screen = desktop.availableGeometry(self)
-        self.setGeometry(screen.width() - self.width(), screen.height() - self.height(), self.width(), self.height())
+        self.setGeometry(screen.width() - self.width(),
+                         screen.height() - self.height(), self.width(), self.height())
+
 
 def main():
     app = QApplication(sys.argv)
     monitor = SystemMonitor(app)
     monitor.show()
     sys.exit(app.exec_())
+
 
 if __name__ == '__main__':
     main()

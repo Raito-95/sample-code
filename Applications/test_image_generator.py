@@ -20,14 +20,15 @@ for x in range(width):
     for y in range(height):
         noise = random.randint(-noise_intensity, noise_intensity)
         r, g, b = image.getpixel((x, y))
-        r += noise
-        g += noise
-        b += noise
+        r = max(0, min(255, r + noise))
+        g = max(0, min(255, g + noise))
+        b = max(0, min(255, b + noise))
         image.putpixel((x, y), (r, g, b))
 
-draw.rectangle([(0, 0), (width, edge_width)], fill=(255, 0, 0))
-draw.rectangle([(0, height - edge_width), (width, height)], fill=(0, 255, 0))
-draw.rectangle([(0, 0), (edge_width, height)], fill=(0, 0, 255))
-draw.rectangle([(width - edge_width, 0), (width, height)], fill=(255, 255, 0))
+# Use tuples for rectangle coordinates
+draw.rectangle((0, 0, width, edge_width), fill=(255, 0, 0))
+draw.rectangle((0, height - edge_width, width, height), fill=(0, 255, 0))
+draw.rectangle((0, 0, edge_width, height), fill=(0, 0, 255))
+draw.rectangle((width - edge_width, 0, width, height), fill=(255, 255, 0))
 
 image.save("panel_test.png")

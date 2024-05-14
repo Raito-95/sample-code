@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLa
 from PyQt5.QtGui import QMouseEvent
 from PyQt5.QtCore import QTimer, Qt, QPoint
 
+
 class SystemMonitor(QMainWindow):
     def __init__(self, app):
         super().__init__()
@@ -40,14 +41,16 @@ class SystemMonitor(QMainWindow):
     def init_ui(self):
         self.setWindowTitle("System Monitor")
         self.setGeometry(0, 0, 220, 300)
-        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.Tool)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint |
+                            Qt.FramelessWindowHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
 
         self.pin_button = QPushButton(self)
         self.pin_button.setCheckable(True)
         self.pin_button.setChecked(True)
-        self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+        self.pin_button.setIcon(
+            self.style().standardIcon(QStyle.SP_DialogApplyButton))
         self.pin_button.setStyleSheet("background-color: green;")
         self.pin_button.clicked.connect(self.toggle_movable)
         self.pin_button.setGeometry(190, 10, 20, 20)
@@ -55,10 +58,12 @@ class SystemMonitor(QMainWindow):
     def toggle_movable(self):
         self.is_movable = not self.is_movable
         if self.is_movable:
-            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+            self.pin_button.setIcon(
+                self.style().standardIcon(QStyle.SP_DialogApplyButton))
             self.pin_button.setStyleSheet("background-color: green;")
         else:
-            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogCancelButton))
+            self.pin_button.setIcon(
+                self.style().standardIcon(QStyle.SP_DialogCancelButton))
             self.pin_button.setStyleSheet("background-color: red;")
 
     def mousePressEvent(self, event: QMouseEvent):
@@ -161,15 +166,24 @@ class SystemMonitor(QMainWindow):
         self.layout.addWidget(self.progress_bar_mem)
 
     def init_disk_widgets(self):
-        self.label_disk = []
-        self.progress_bar_disk = []
-        for partition in psutil.disk_partitions():
-            if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
-                label, progress_bar = self.create_label_progress_bar()
-                self.label_disk.append(label)
-                self.progress_bar_disk.append(progress_bar)
-                self.layout.addWidget(label)
-                self.layout.addWidget(progress_bar)
+        for label in self.label_disk:
+            self.layout.removeWidget(label)
+            label.deleteLater()
+        for bar in self.progress_bar_disk:
+            self.layout.removeWidget(bar)
+            bar.deleteLater()
+
+        self.label_disk.clear()
+        self.progress_bar_disk.clear()
+
+        accessible_partitions = [p for p in psutil.disk_partitions() if os.path.exists(
+            p.mountpoint) and os.access(p.mountpoint, os.R_OK)]
+        for _ in accessible_partitions:
+            label, progress_bar = self.create_label_progress_bar()
+            self.label_disk.append(label)
+            self.progress_bar_disk.append(progress_bar)
+            self.layout.addWidget(label)
+            self.layout.addWidget(progress_bar)
 
     def create_label_progress_bar(self):
         label = self.create_label()
@@ -189,7 +203,7 @@ class SystemMonitor(QMainWindow):
             }
         """)
         return label, progress_bar
-    
+
     def create_label(self):
         label = QLabel(self.central_widget)
         label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -197,76 +211,108 @@ class SystemMonitor(QMainWindow):
         return label
 
     def update_network_info(self):
-        network = psutil.net_io_counters()
-        upload = (network.bytes_sent / 1024) - self.last_upload
-        download = (network.bytes_recv / 1024) - self.last_download
+        try:
+            network = psutil.net_io_counters()
+            upload = (network.bytes_sent / 1024) - self.last_upload
+            download = (network.bytes_recv / 1024) - self.last_download
 
-        self.last_upload = network.bytes_sent / 1024
-        self.last_download = network.bytes_recv / 1024
+            self.last_upload = network.bytes_sent / 1024
+            self.last_download = network.bytes_recv / 1024
 
-        self.max_upload_rate = max(self.max_upload_rate, upload)
-        self.max_download_rate = max(self.max_download_rate, download)
+            self.max_upload_rate = max(self.max_upload_rate, upload)
+            self.max_download_rate = max(self.max_download_rate, download)
 
-        upload_percentage = int(upload / self.max_upload_rate * 100) if self.max_upload_rate > 0 else 0
-        download_percentage = int(download / self.max_download_rate * 100) if self.max_download_rate > 0 else 0
+            upload_percentage = int(
+                upload / self.max_upload_rate * 100) if self.max_upload_rate > 0 else 0
+            download_percentage = int(
+                download / self.max_download_rate * 100) if self.max_download_rate > 0 else 0
 
-        if upload > 1024:
-            upload /= 1024
-            upload_unit = "MB/s"
-        else:
-            upload_unit = "KB/s"
+            if upload > 1024:
+                upload /= 1024
+                upload_unit = "MB/s"
+            else:
+                upload_unit = "KB/s"
 
-        if download > 1024:
-            download /= 1024
-            download_unit = "MB/s"
-        else:
-            download_unit = "KB/s"
+            if download > 1024:
+                download /= 1024
+                download_unit = "MB/s"
+            else:
+                download_unit = "KB/s"
 
-        self.label_network.setText(f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}")
-        self.progress_bar_upload.setValue(upload_percentage)
-        self.progress_bar_download.setValue(download_percentage)
+            self.label_network.setText(
+                f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}")
+            self.progress_bar_upload.setValue(upload_percentage)
+            self.progress_bar_download.setValue(download_percentage)
+        except Exception as e:
+            self.label_network.setText("Network monitoring error")
+            print(f"Error monitoring network: {e}")
 
     def update_cpu_info(self):
-        cpu_usage = psutil.cpu_percent()
-        self.label_cpu.setText(f"CPU: {cpu_usage:.1f}%")
-        self.progress_bar_cpu.setValue(int(cpu_usage))
+        try:
+            cpu_usage = psutil.cpu_percent()
+            self.label_cpu.setText(f"CPU: {cpu_usage:.1f}%")
+            self.progress_bar_cpu.setValue(int(cpu_usage))
+        except Exception as e:
+            self.label_cpu.setText("CPU monitoring error")
+            print(f"Error monitoring CPU: {e}")
 
     def update_gpu_info(self):
-        gpu_info = GPUtil.getGPUs()[0] if GPUtil.getGPUs() else None
-        if gpu_info:
-            gpu_usage = gpu_info.load * 100
-            gpu_temp = gpu_info.temperature
-            self.label_gpu.setText(f"GPU: {gpu_usage:.1f}% - Temp: {gpu_temp}°C")
-            self.progress_bar_gpu.setValue(int(gpu_usage))
+        try:
+            gpu_info = GPUtil.getGPUs()[0] if GPUtil.getGPUs() else None
+            if gpu_info:
+                gpu_usage = gpu_info.load * 100
+                gpu_temp = gpu_info.temperature
+                self.label_gpu.setText(
+                    f"GPU: {gpu_usage:.1f}% - Temp: {gpu_temp}°C")
+                self.progress_bar_gpu.setValue(int(gpu_usage))
+            else:
+                self.label_gpu.setText("No GPU detected")
+        except Exception as e:
+            self.label_gpu.setText("GPU monitoring error")
+            print(f"Error monitoring GPU: {e}")
 
     def update_memory_info(self):
-        mem = psutil.virtual_memory()
-        mem_usage = mem.percent
-        mem_used_gb = mem.used / 1024 / 1024 / 1024
-        mem_total_gb = mem.total / 1024 / 1024 / 1024
-        self.label_mem.setText(f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB")
-        self.progress_bar_mem.setValue(int(mem_usage))
+        try:
+            mem = psutil.virtual_memory()
+            mem_usage = mem.percent
+            mem_used_gb = mem.used / 1024 / 1024 / 1024
+            mem_total_gb = mem.total / 1024 / 1024 / 1024
+            self.label_mem.setText(
+                f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB")
+            self.progress_bar_mem.setValue(int(mem_usage))
+        except Exception as e:
+            self.label_mem.setText("Memory monitoring error")
+            print(f"Error monitoring memory: {e}")
 
     def update_disk_info(self):
-        for index, partition in enumerate(psutil.disk_partitions()):
-            if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
+        accessible_partitions = [p for p in psutil.disk_partitions() if os.path.exists(
+            p.mountpoint) and os.access(p.mountpoint, os.R_OK)]
+
+        try:
+            for index, partition in enumerate(accessible_partitions):
                 disk_usage = psutil.disk_usage(partition.mountpoint)
                 disk_usage_percent = disk_usage.percent
                 disk_total_gb = disk_usage.total / (1024 ** 3)
                 disk_used_gb = disk_usage.used / (1024 ** 3)
-                self.label_disk[index].setText(f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
+                self.label_disk[index].setText(
+                    f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
                 self.progress_bar_disk[index].setValue(int(disk_usage_percent))
+        except Exception as e:
+            print(f"Error monitoring disk: {e}")
 
     def set_geometry_to_bottom(self):
         desktop = QDesktopWidget()
         screen = desktop.availableGeometry(self)
-        self.setGeometry(screen.width() - self.width(), screen.height() - self.height(), self.width(), self.height())
+        self.setGeometry(screen.width() - self.width(),
+                         screen.height() - self.height(), self.width(), self.height())
+
 
 def main():
     app = QApplication(sys.argv)
     monitor = SystemMonitor(app)
     monitor.show()
     sys.exit(app.exec_())
+
 
 if __name__ == '__main__':
     main()
