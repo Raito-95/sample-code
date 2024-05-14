@@ -14,7 +14,7 @@ class MouseKeyboardControl:
             'click_left': {
                 'event': threading.Event(),
                 'method': self.click_left,
-                'interval': 0.4
+                'interval': 0.2
             },
             'click_right': {
                 'event': threading.Event(),
