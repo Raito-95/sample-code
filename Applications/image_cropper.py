@@ -47,8 +47,7 @@ def main():
             continue
 
         cropped_image = crop_image(input_image, start_x, start_y, end_x, end_y)
-        output_image_path = os.path.join(
-            output_folder_path, f"cropped_{image_file}")
+        output_image_path = os.path.join(output_folder_path, f"cropped_{image_file}")
 
         save_image(output_image_path, cropped_image)
         print(f"Cropped and saved image: {output_image_path}")

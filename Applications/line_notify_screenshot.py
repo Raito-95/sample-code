@@ -29,8 +29,7 @@ def send_line_notify(image_path):
         headers = {"Authorization": "Bearer " + str(LINE_NOTIFY_TOKEN)}
         params = {'message': NOTIFICATION_MESSAGE}
         files = {'imageFile': open(image_path, 'rb')}
-        response = requests.post("https://notify-api.line.me/api/notify",
-                                 headers=headers, params=params, files=files, timeout=10)
+        response = requests.post("https://notify-api.line.me/api/notify", headers=headers, params=params, files=files, timeout=10)
         return response.status_code
     else:
         print('LINE_NOTIFY_TOKEN is not set. Cannot send notification.')

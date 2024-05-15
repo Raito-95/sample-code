@@ -16,11 +16,9 @@ def check_website(url):
     try:
         response = requests.get(url, timeout=10)
         if response.status_code == 200:
-            send_line_notify(
-                f"Website {url} is up and running. Status code: 200")
+            send_line_notify(f"Website {url} is up and running. Status code: 200")
         else:
-            send_line_notify(
-                f"Website {url} returned status code {response.status_code}")
+            send_line_notify(f"Website {url} returned status code {response.status_code}")
     except requests.exceptions.RequestException as e:
         send_line_notify(f"Website {url} is down. Error: {e}")
 

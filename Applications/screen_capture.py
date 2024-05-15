@@ -28,8 +28,7 @@ def main():
         frame_size = (width, height)
 
         # Initialize video writer
-        video_writer = initialize_video_writer(
-            output_filename, frame_size, frame_rate)
+        video_writer = initialize_video_writer(output_filename, frame_size, frame_rate)
 
         print("Starting screen capture. Press 'Ctrl+C' to stop.")
 

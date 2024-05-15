@@ -10,8 +10,7 @@ def enhance_image(input_frame, enhancer_cls, enhance_factor, save_filepath):
         enhancer = enhancer_cls(input_frame)
         enhanced_image = enhancer.enhance(enhance_factor)
         enhanced_image.save(save_filepath)
-        print(
-            f'Saved image to {save_filepath}, Enhancement factor: {enhance_factor}')
+        print(f'Saved image to {save_filepath}, Enhancement factor: {enhance_factor}')
     except Exception as e:
         print(f"Failed to enhance image {save_filepath}: {e}")
 
@@ -62,7 +61,6 @@ for image_name in images_list:
         enhance_factor = 0.5
 
         for count in range(6):
-            save_filepath = os.path.join(
-                enhancer_folder, f"{os.path.splitext(image_name)[0]}_{enhancer_name}_{count + 1}.png")
+            save_filepath = os.path.join(enhancer_folder, f"{os.path.splitext(image_name)[0]}_{enhancer_name}_{count + 1}.png")
             enhance_image(frame, enhancer_cls, enhance_factor, save_filepath)
             enhance_factor += 0.3

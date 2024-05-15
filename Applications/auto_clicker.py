@@ -3,8 +3,7 @@ from pynput import mouse, keyboard
 import logging
 from threading import Lock
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class MouseKeyboardControl:
@@ -55,8 +54,7 @@ class MouseKeyboardControl:
                     action['event'].clear()
                 self.clicking_active = True
                 for name, action in self.actions.items():
-                    threading.Thread(target=action['method'], args=(
-                        name,) if 'press_' in name else ()).start()
+                    threading.Thread(target=action['method'], args=(name,) if 'press_' in name else ()).start()
                 self.keyboard_controller.press(keyboard.Key.ctrl)
                 self.print_event_time("Delete pressed and actions started")
             elif key == keyboard.Key.end:

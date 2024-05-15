@@ -21,8 +21,7 @@ class ActionRecorder:
 
     def setup_listeners(self):
         self.keyboard_listener = KeyboardListener(on_press=self.on_press)
-        self.mouse_listener = MouseListener(
-            on_move=self.on_move, on_click=self.on_click)
+        self.mouse_listener = MouseListener(on_move=self.on_move, on_click=self.on_click)
         self.keyboard_controller = KeyboardController()
         self.mouse_controller = MouseController()
 
@@ -77,8 +76,7 @@ class ActionRecorder:
         if self.recording:
             self.events = []
             self.last_event_time = None
-        print(
-            f"[Info] Recording toggled. State: {'Recording' if self.recording else 'Not recording'}")
+        print(f"[Info] Recording toggled. State: {'Recording' if self.recording else 'Not recording'}")
 
     def toggle_playback(self):
         if self.recording:
@@ -89,14 +87,12 @@ class ActionRecorder:
             threading.Thread(target=self.play_events, daemon=True).start()
         else:
             self.playing = False
-        print(
-            f"[Info] Playback toggled. State: {'Playing' if self.playing else 'Not playing'}")
+        print(f"[Info] Playback toggled. State: {'Playing' if self.playing else 'Not playing'}")
 
     def record_event(self, event_info):
         if self.recording:
             now = time.time()
-            event_info['delay'] = 0 if self.last_event_time is None else now - \
-                self.last_event_time
+            event_info['delay'] = 0 if self.last_event_time is None else now - self.last_event_time
             self.events.append(event_info)
             self.last_event_time = now
             print(f"[Info] Recorded event: {event_info}")
@@ -133,8 +129,7 @@ class ActionRecorder:
                 self.keyboard_controller.press(key)
                 self.keyboard_controller.release(key)
             else:
-                print(
-                    f"[Error] Invalid or unresolved key object: {event['key']}")
+                print(f"[Error] Invalid or unresolved key object: {event['key']}")
         elif event_type == 'move':
             self.mouse_controller.position = (event['x'], event['y'])
         elif event_type == 'click':
@@ -143,16 +138,14 @@ class ActionRecorder:
             action(button)
 
     def save_events(self):
-        filename = filedialog.asksaveasfilename(defaultextension='.json', filetypes=[
-                                                ('JSON files', '*.json')], title="Save events as...")
+        filename = filedialog.asksaveasfilename(defaultextension='.json', filetypes=[('JSON files', '*.json')], title="Save events as...")
         if filename:
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(self.events, f)
             print(f"[Info] Events saved to {filename}")
 
     def load_events(self):
-        filename = filedialog.askopenfilename(
-            filetypes=[('JSON files', '*.json')], title="Load events from...")
+        filename = filedialog.askopenfilename(filetypes=[('JSON files', '*.json')], title="Load events from...")
         if filename:
             with open(filename, 'r', encoding='utf-8') as f:
                 self.events = json.load(f)
