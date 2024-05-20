@@ -9,10 +9,11 @@ def bubble_sort(dataset):
     """
     n = len(dataset)
     for i in range(n - 1):
-        for j in range(0, n-i-1):
-            if dataset[j] > dataset[j+1]:
-                dataset[j], dataset[j+1] = dataset[j+1], dataset[j]
+        for j in range(0, n - i - 1):
+            if dataset[j] > dataset[j + 1]:
+                dataset[j], dataset[j + 1] = dataset[j + 1], dataset[j]
     return dataset
+
 
 def merge_sort(dataset):
     """
@@ -55,6 +56,7 @@ def merge_sort(dataset):
 
     return dataset
 
+
 def quick_sort(dataset, first, last):
     """
     Sorts a list using the quick sort algorithm with recursion.
@@ -66,6 +68,7 @@ def quick_sort(dataset, first, last):
     Returns:
         list: The sorted list.
     """
+
     def partition(low, high):
         pivot = dataset[high]
         i = low - 1
@@ -73,15 +76,16 @@ def quick_sort(dataset, first, last):
             if dataset[j] <= pivot:
                 i += 1
                 dataset[i], dataset[j] = dataset[j], dataset[i]
-        dataset[i+1], dataset[high] = dataset[high], dataset[i+1]
-        return i+1
+        dataset[i + 1], dataset[high] = dataset[high], dataset[i + 1]
+        return i + 1
 
     if first < last:
         pi = partition(first, last)
-        quick_sort(dataset, first, pi-1)
-        quick_sort(dataset, pi+1, last)
+        quick_sort(dataset, first, pi - 1)
+        quick_sort(dataset, pi + 1, last)
 
     return dataset
+
 
 def main():
     """
@@ -92,6 +96,7 @@ def main():
     print("Bubble sorted:", bubble_sort(dataset.copy()))
     print("Merge sorted:", merge_sort(dataset.copy()))
     print("Quick sorted:", quick_sort(dataset.copy(), 0, len(dataset) - 1))
+
 
 if __name__ == "__main__":
     main()

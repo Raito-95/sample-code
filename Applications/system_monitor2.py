@@ -2,7 +2,16 @@ import os
 import sys
 import psutil
 import GPUtil
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QDesktopWidget, QPushButton, QStyle
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QDesktopWidget,
+    QPushButton,
+    QStyle,
+)
 from PyQt5.QtGui import QMouseEvent, QPainter, QPen, QColor, QPainterPath
 from PyQt5.QtCore import QTimer, Qt, QPoint
 
@@ -43,7 +52,15 @@ class LineGraphWidget(QWidget):
         fill_path.lineTo(w, h)
         fill_path.lineTo(0, h)
         fill_path.closeSubpath()
-        painter.fillPath(fill_path, QColor(self.line_color.red(), self.line_color.green(), self.line_color.blue(), 50))
+        painter.fillPath(
+            fill_path,
+            QColor(
+                self.line_color.red(),
+                self.line_color.green(),
+                self.line_color.blue(),
+                50,
+            ),
+        )
 
         # Draw the line graph
         painter.setPen(QPen(self.line_color, 2))
@@ -101,10 +118,14 @@ class SystemMonitor(QMainWindow):
     def toggle_movable(self):
         self.is_movable = not self.is_movable
         if self.is_movable:
-            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+            self.pin_button.setIcon(
+                self.style().standardIcon(QStyle.SP_DialogApplyButton)
+            )
             self.pin_button.setStyleSheet("background-color: green;")
         else:
-            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogCancelButton))
+            self.pin_button.setIcon(
+                self.style().standardIcon(QStyle.SP_DialogCancelButton)
+            )
             self.pin_button.setStyleSheet("background-color: red;")
 
     def mousePressEvent(self, event: QMouseEvent):
@@ -112,7 +133,11 @@ class SystemMonitor(QMainWindow):
             self.old_pos = event.globalPos()
 
     def mouseMoveEvent(self, event: QMouseEvent):
-        if self.is_movable and self.old_pos is not None and event.buttons() == Qt.LeftButton:
+        if (
+            self.is_movable
+            and self.old_pos is not None
+            and event.buttons() == Qt.LeftButton
+        ):
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self.old_pos = event.globalPos()
@@ -155,8 +180,12 @@ class SystemMonitor(QMainWindow):
         self.label_network = self.create_label()
         self.layout.addWidget(self.label_network)
 
-        self.upload_graph = LineGraphWidget(self.central_widget, line_color=QColor(255, 120, 50), dynamic_max=True)  # Orange for upload
-        self.download_graph = LineGraphWidget(self.central_widget, line_color=QColor(150, 50, 200), dynamic_max=True)  # Purple for download
+        self.upload_graph = LineGraphWidget(
+            self.central_widget, line_color=QColor(255, 120, 50), dynamic_max=True
+        )  # Orange for upload
+        self.download_graph = LineGraphWidget(
+            self.central_widget, line_color=QColor(150, 50, 200), dynamic_max=True
+        )  # Purple for download
         self.layout.addWidget(self.upload_graph)
         self.layout.addWidget(self.download_graph)
 
@@ -182,7 +211,9 @@ class SystemMonitor(QMainWindow):
         self.label_disk = []
         self.disk_graphs = []
         for partition in psutil.disk_partitions():
-            if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
+            if os.path.exists(partition.mountpoint) and os.access(
+                partition.mountpoint, os.R_OK
+            ):
                 label = self.create_label()
                 self.label_disk.append(label)
                 self.layout.addWidget(label)
@@ -198,7 +229,7 @@ class SystemMonitor(QMainWindow):
 
     def update_network_info(self):
         network = psutil.net_io_counters()
-        if not hasattr(self, 'last_upload'):
+        if not hasattr(self, "last_upload"):
             self.last_upload = network.bytes_sent / 1024
             self.last_download = network.bytes_recv / 1024
         upload = (network.bytes_sent / 1024) - self.last_upload
@@ -219,7 +250,9 @@ class SystemMonitor(QMainWindow):
         else:
             download_unit = "KB/s"
 
-        self.label_network.setText(f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}")
+        self.label_network.setText(
+            f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}"
+        )
         self.upload_graph.update_usage(upload)
         self.download_graph.update_usage(download)
 
@@ -241,23 +274,34 @@ class SystemMonitor(QMainWindow):
         mem_usage = mem.percent
         mem_used_gb = mem.used / 1024 / 1024 / 1024
         mem_total_gb = mem.total / 1024 / 1024 / 1024
-        self.label_mem.setText(f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB")
+        self.label_mem.setText(
+            f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB"
+        )
         self.memory_graph.update_usage(mem_usage)
 
     def update_disk_info(self):
         for index, partition in enumerate(psutil.disk_partitions()):
-            if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
+            if os.path.exists(partition.mountpoint) and os.access(
+                partition.mountpoint, os.R_OK
+            ):
                 disk_usage = psutil.disk_usage(partition.mountpoint)
                 disk_usage_percent = disk_usage.percent
-                disk_total_gb = disk_usage.total / (1024 ** 3)
-                disk_used_gb = disk_usage.used / (1024 ** 3)
-                self.label_disk[index].setText(f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
+                disk_total_gb = disk_usage.total / (1024**3)
+                disk_used_gb = disk_usage.used / (1024**3)
+                self.label_disk[index].setText(
+                    f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB"
+                )
                 self.disk_graphs[index].update_usage(disk_usage_percent)
 
     def set_geometry_to_bottom(self):
         desktop = QDesktopWidget()
         screen = desktop.availableGeometry(self)
-        self.setGeometry(screen.width() - self.width(), screen.height() - self.height(), self.width(), self.height())
+        self.setGeometry(
+            screen.width() - self.width(),
+            screen.height() - self.height(),
+            self.width(),
+            self.height(),
+        )
 
 
 def main():
@@ -267,5 +311,5 @@ def main():
     sys.exit(app.exec_())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

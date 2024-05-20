@@ -4,6 +4,7 @@ class Node:
         self.prev = None
         self.next = None
 
+
 class DoublyLinkedList:
     def __init__(self):
         self.head = None
@@ -71,6 +72,7 @@ class DoublyLinkedList:
             elements.append(current.data)
             current = current.prev
         return elements
+
 
 # Usage example
 dll = DoublyLinkedList()

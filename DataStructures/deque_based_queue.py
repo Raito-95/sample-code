@@ -1,5 +1,6 @@
 from collections import deque
 
+
 class Queue:
     def __init__(self):
         self.items = deque()  # Use deque to implement the queue
@@ -41,6 +42,7 @@ class Queue:
         if not self.is_empty():
             return self.items[0]
         return None
+
 
 # Usage example
 queue = Queue()

@@ -3,6 +3,7 @@ class Node:
         self.data = data
         self.next = None
 
+
 class SinglyLinkedList:
     def __init__(self):
         self.head = None
@@ -73,6 +74,7 @@ class SinglyLinkedList:
             elements.append(current.data)
             current = current.next
         return elements
+
 
 # Usage example
 sll = SinglyLinkedList()

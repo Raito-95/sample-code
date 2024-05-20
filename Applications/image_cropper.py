@@ -17,20 +17,25 @@ def save_image(output_path, image):
     cv2.imwrite(output_path, image)
 
 
-def get_image_files(folder_path, extensions=('.jpg', '.jpeg', '.png')):
+def get_image_files(folder_path, extensions=(".jpg", ".jpeg", ".png")):
     """
     Get a list of image files in the specified folder with the given extensions.
     """
-    return [file for file in os.listdir(folder_path) if file.lower().endswith(extensions)]
+    return [
+        file for file in os.listdir(folder_path) if file.lower().endswith(extensions)
+    ]
 
 
 def main():
-    image_folder_path = '.'  # Path to the folder containing input images
+    image_folder_path = "."  # Path to the folder containing input images
     # Output folder for cropped images
-    output_folder_path = os.path.join(image_folder_path, 'crop')
+    output_folder_path = os.path.join(image_folder_path, "crop")
 
     start_x, start_y = 0, 0  # Starting coordinates of the top-left corner for cropping
-    end_x, end_y = 1920, 1080  # Ending coordinates of the bottom-right corner for cropping
+    end_x, end_y = (
+        1920,
+        1080,
+    )  # Ending coordinates of the bottom-right corner for cropping
 
     image_files = get_image_files(image_folder_path)
 

@@ -10,7 +10,7 @@ def enhance_image(input_frame, enhancer_cls, enhance_factor, save_filepath):
         enhancer = enhancer_cls(input_frame)
         enhanced_image = enhancer.enhance(enhance_factor)
         enhanced_image.save(save_filepath)
-        print(f'Saved image to {save_filepath}, Enhancement factor: {enhance_factor}')
+        print(f"Saved image to {save_filepath}, Enhancement factor: {enhance_factor}")
     except Exception as e:
         print(f"Failed to enhance image {save_filepath}: {e}")
 
@@ -31,16 +31,16 @@ def create_folder(path):
 
 # Paths
 current_path = os.path.dirname(os.path.abspath(__file__))
-data_path = os.path.join(current_path, 'data')
+data_path = os.path.join(current_path, "data")
 
 # Enhancements setup
 enhancement_types = {
-    'brightness': ImageEnhance.Brightness,
-    'color': ImageEnhance.Color,
-    'contrast': ImageEnhance.Contrast,
-    'sharpness': ImageEnhance.Sharpness
+    "brightness": ImageEnhance.Brightness,
+    "color": ImageEnhance.Color,
+    "contrast": ImageEnhance.Contrast,
+    "sharpness": ImageEnhance.Sharpness,
 }
-image_extensions = ('.png', '.jpg', '.jpeg')
+image_extensions = (".png", ".jpg", ".jpeg")
 
 # Create enhancement folders
 for name in enhancement_types.keys():
@@ -61,6 +61,9 @@ for image_name in images_list:
         enhance_factor = 0.5
 
         for count in range(6):
-            save_filepath = os.path.join(enhancer_folder, f"{os.path.splitext(image_name)[0]}_{enhancer_name}_{count + 1}.png")
+            save_filepath = os.path.join(
+                enhancer_folder,
+                f"{os.path.splitext(image_name)[0]}_{enhancer_name}_{count + 1}.png",
+            )
             enhance_image(frame, enhancer_cls, enhance_factor, save_filepath)
             enhance_factor += 0.3

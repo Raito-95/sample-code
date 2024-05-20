@@ -1,52 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebSocket Image Stream</title>
     <style>
-        body, html {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            overflow: hidden;
-        }
-        img {
-            width: 100%;
-            max-width: 640px;
-            height: auto;
-        }
+      body,
+      html {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+      }
+      img {
+        width: 100%;
+        max-width: 640px;
+        height: auto;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <img id="camera-stream" />
 
     <script>
-        const websocket = new WebSocket('ws://localhost:8765');
-        const imageElement = document.getElementById('camera-stream');
-        
-        websocket.onmessage = function(event) {
-            // Decode the Base64 encoded image data
-            const base64Data = event.data;
-            const blob = base64ToBlob(base64Data, 'image/jpeg');
-    
-            // Create a URL for the Blob object
-            const blobURL = URL.createObjectURL(blob);
-    
-            // Update the image element's source to the new Blob URL
-            imageElement.src = blobURL;
-        };
-    
-        // Convert a Base64 encoded string to a Blob object
-        function base64ToBlob(base64Data, contentType) {
-            const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            return new Blob([byteArray], {type: contentType});
+      const websocket = new WebSocket("ws://localhost:8765");
+      const imageElement = document.getElementById("camera-stream");
+
+      websocket.onmessage = function (event) {
+        // Decode the Base64 encoded image data
+        const base64Data = event.data;
+        const blob = base64ToBlob(base64Data, "image/jpeg");
+
+        // Create a URL for the Blob object
+        const blobURL = URL.createObjectURL(blob);
+
+        // Update the image element's source to the new Blob URL
+        imageElement.src = blobURL;
+      };
+
+      // Convert a Base64 encoded string to a Blob object
+      function base64ToBlob(base64Data, contentType) {
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
+        const byteArray = new Uint8Array(byteNumbers);
+        return new Blob([byteArray], { type: contentType });
+      }
     </script>
-</body>
+  </body>
 </html>

@@ -32,7 +32,7 @@ class SerialReader:
 
     def read_serial(self, callback):
         while self.running:
-            line = self.serial_port.readline().decode('utf-8').rstrip()
+            line = self.serial_port.readline().decode("utf-8").rstrip()
             for pattern, deque_obj in self.deques.items():
                 regex = f"{pattern}:\\s*(-?\\d+\\.\\d+)"
                 match = re.search(regex, line)
@@ -67,60 +67,91 @@ class SerialDataGUI(tk.Frame):
     def setup_gui(self):
         main_frame = ttk.Frame(self.master, padding="10")
         main_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        connection_frame = ttk.LabelFrame(main_frame, text="Connection Settings", padding="10")
+        connection_frame = ttk.LabelFrame(
+            main_frame, text="Connection Settings", padding="10"
+        )
         connection_frame.pack(side=tk.TOP, fill=tk.X, expand=True)
-        
+
         port_label = ttk.Label(connection_frame, text="Port:")
         port_label.pack(side=tk.LEFT, padx=5, pady=5)
-        
+
         self.port_var = tk.StringVar()
-        self.port_dropdown = ttk.Combobox(connection_frame, textvariable=self.port_var, state="readonly")
+        self.port_dropdown = ttk.Combobox(
+            connection_frame, textvariable=self.port_var, state="readonly"
+        )
         self.port_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
-        
-        self.refresh_button = ttk.Button(connection_frame, text="\u21BB", command=self.update_ports)
+
+        self.refresh_button = ttk.Button(
+            connection_frame, text="\u21BB", command=self.update_ports
+        )
         self.refresh_button.pack(side=tk.LEFT, padx=5, pady=5)
-        
+
         baud_label = ttk.Label(connection_frame, text="Baud Rate:")
         baud_label.pack(side=tk.LEFT, padx=5, pady=5)
-        
+
         self.baud_var = tk.StringVar(value="115200")
-        self.baud_dropdown = ttk.Combobox(connection_frame, textvariable=self.baud_var, state="readonly", values=("9600", "19200", "38400", "57600", "115200"))
+        self.baud_dropdown = ttk.Combobox(
+            connection_frame,
+            textvariable=self.baud_var,
+            state="readonly",
+            values=("9600", "19200", "38400", "57600", "115200"),
+        )
         self.baud_dropdown.pack(side=tk.LEFT, padx=5, pady=5)
-        
+
         pattern_frame = ttk.LabelFrame(main_frame, text="Pattern Input", padding="10")
         pattern_frame.pack(side=tk.TOP, fill=tk.X, expand=True)
         pattern_entry_frame = ttk.Frame(pattern_frame)
         pattern_entry_frame.pack(side=tk.TOP, fill=tk.X, expand=True)
-        
+
         pattern_entry = ttk.Entry(pattern_entry_frame, textvariable=self.pattern_var)
         pattern_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5, pady=5)
-        
-        submit_button = ttk.Button(pattern_entry_frame, text="Submit", command=self.submit_pattern)
+
+        submit_button = ttk.Button(
+            pattern_entry_frame, text="Submit", command=self.submit_pattern
+        )
         submit_button.pack(side=tk.LEFT, padx=5, pady=5)
-        
+
         self.pattern_listbox = tk.Listbox(pattern_frame, height=6)
-        self.pattern_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
-        
-        delete_button = ttk.Button(pattern_frame, text="Delete", command=self.delete_pattern)
+        self.pattern_listbox.pack(
+            side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5
+        )
+
+        delete_button = ttk.Button(
+            pattern_frame, text="Delete", command=self.delete_pattern
+        )
         delete_button.pack(side=tk.LEFT, padx=5, pady=5)
-       
+
         button_frame = ttk.Frame(main_frame)
         button_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        
-        self.start_button = ttk.Button(button_frame, text="Start", command=self.start_clicked)
-        self.start_button.pack(side=tk.LEFT, padx=(10, 5), pady=5, fill=tk.BOTH, expand=True)
-        
-        self.stop_button = ttk.Button(button_frame, text="Stop", command=self.stop_clicked, state='disabled')
+
+        self.start_button = ttk.Button(
+            button_frame, text="Start", command=self.start_clicked
+        )
+        self.start_button.pack(
+            side=tk.LEFT, padx=(10, 5), pady=5, fill=tk.BOTH, expand=True
+        )
+
+        self.stop_button = ttk.Button(
+            button_frame, text="Stop", command=self.stop_clicked, state="disabled"
+        )
         self.stop_button.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
-        
-        self.clear_button = ttk.Button(button_frame, text="Clear", command=self.clear_plot)
-        self.clear_button.pack(side=tk.LEFT, padx=5,pady=5, fill=tk.BOTH, expand=True)
-        
-        self.exit_button = ttk.Button(button_frame, text="Exit", command=self.master.destroy)
-        self.exit_button.pack(side=tk.LEFT, padx=(5, 10), pady=5, fill=tk.BOTH, expand=True)
-       
-        status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
-        
+
+        self.clear_button = ttk.Button(
+            button_frame, text="Clear", command=self.clear_plot
+        )
+        self.clear_button.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.BOTH, expand=True)
+
+        self.exit_button = ttk.Button(
+            button_frame, text="Exit", command=self.master.destroy
+        )
+        self.exit_button.pack(
+            side=tk.LEFT, padx=(5, 10), pady=5, fill=tk.BOTH, expand=True
+        )
+
+        status_bar = ttk.Label(
+            main_frame, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W
+        )
+
         status_bar.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
         self.figure = Figure(figsize=(6, 4), dpi=100)
         self.plot = self.figure.add_subplot(111)
@@ -131,8 +162,8 @@ class SerialDataGUI(tk.Frame):
 
     def update_ports(self):
         available_ports = [port.device for port in serial.tools.list_ports.comports()]
-        self.port_dropdown['values'] = available_ports
-        self.port_var.set(available_ports[0] if available_ports else '')
+        self.port_dropdown["values"] = available_ports
+        self.port_var.set(available_ports[0] if available_ports else "")
 
     def start_clicked(self):
         try:
@@ -142,7 +173,9 @@ class SerialDataGUI(tk.Frame):
                 for pattern in self.get_all_patterns():
                     self.serial_reader.add_pattern(pattern)
             self.serial_reader.start_reading(self.update_plot)
-            self.status_var.set(f"Connected to {self.port_var.get()} at {baud_rate} baud.")
+            self.status_var.set(
+                f"Connected to {self.port_var.get()} at {baud_rate} baud."
+            )
             self.toggle_buttons(True)
         except serial.SerialException as e:
             messagebox.showerror("Connection Error", f"Failed to connect: {str(e)}")
@@ -151,7 +184,9 @@ class SerialDataGUI(tk.Frame):
             messagebox.showerror("Configuration Error", "Invalid baud rate.")
 
     def get_all_patterns(self):
-        return [self.pattern_listbox.get(idx) for idx in range(self.pattern_listbox.size())]
+        return [
+            self.pattern_listbox.get(idx) for idx in range(self.pattern_listbox.size())
+        ]
 
     def stop_clicked(self, show_message=True):
         if self.serial_reader:
@@ -160,17 +195,19 @@ class SerialDataGUI(tk.Frame):
             self.status_var.set("Disconnected.")
             self.toggle_buttons(False)
             if show_message:
-                messagebox.showinfo("Disconnected", "Serial connection has been closed.")
+                messagebox.showinfo(
+                    "Disconnected", "Serial connection has been closed."
+                )
 
     def toggle_buttons(self, is_running):
-        state = 'disabled' if is_running else 'normal'
-        self.port_dropdown['state'] = state
-        self.baud_dropdown['state'] = state
-        self.refresh_button['state'] = state
-        self.start_button['state'] = state
-        self.stop_button['state'] = 'normal' if is_running else 'disabled'
-        self.clear_button['state'] = 'normal'
-        self.pattern_listbox['state'] = 'normal'
+        state = "disabled" if is_running else "normal"
+        self.port_dropdown["state"] = state
+        self.baud_dropdown["state"] = state
+        self.refresh_button["state"] = state
+        self.start_button["state"] = state
+        self.stop_button["state"] = "normal" if is_running else "disabled"
+        self.clear_button["state"] = "normal"
+        self.pattern_listbox["state"] = "normal"
 
     def submit_pattern(self):
         pattern = self.pattern_var.get()
@@ -181,17 +218,22 @@ class SerialDataGUI(tk.Frame):
         try:
             re.compile(pattern)
         except re.error:
-            messagebox.showerror("Invalid Pattern", "The entered pattern is not a valid regular expression.")
+            messagebox.showerror(
+                "Invalid Pattern",
+                "The entered pattern is not a valid regular expression.",
+            )
             return
 
         if pattern in self.get_all_patterns():
-            messagebox.showerror("Duplicate Pattern", "This pattern is already in the list.")
+            messagebox.showerror(
+                "Duplicate Pattern", "This pattern is already in the list."
+            )
             return
 
         self.pattern_listbox.insert(tk.END, pattern)
         if self.serial_reader:
             self.serial_reader.add_pattern(pattern)
-        self.pattern_var.set('')
+        self.pattern_var.set("")
 
     def delete_pattern(self):
         selected_index = self.pattern_listbox.curselection()
@@ -206,8 +248,8 @@ class SerialDataGUI(tk.Frame):
         if self.serial_reader:
             self.serial_reader.reset_data()
         self.plot.clear()
-        self.plot.set_xlabel('Data Point Index')
-        self.plot.set_ylabel('Value')
+        self.plot.set_xlabel("Data Point Index")
+        self.plot.set_ylabel("Value")
         self.canvas.draw_idle()
 
     def update_plot(self):
@@ -230,16 +272,18 @@ class SerialDataGUI(tk.Frame):
                     data_plotted = True
 
         if data_plotted:
-            self.plot.legend(loc='upper left')
+            self.plot.legend(loc="upper left")
 
-        self.plot.set_xlabel('Data Point Index')
-        self.plot.set_ylabel('Value')
+        self.plot.set_xlabel("Data Point Index")
+        self.plot.set_ylabel("Value")
         self.canvas.draw_idle()
 
     def check_connection_periodically(self):
         if self.serial_reader and not self.serial_reader.is_connected():
             self.stop_clicked(show_message=False)
-            messagebox.showinfo("Connection Lost", "The connection to the device has been lost.")
+            messagebox.showinfo(
+                "Connection Lost", "The connection to the device has been lost."
+            )
         self.master.after(1000, self.check_connection_periodically)
 
 

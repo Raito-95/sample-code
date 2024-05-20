@@ -2,7 +2,17 @@ import os
 import sys
 import psutil
 import GPUtil
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QProgressBar, QDesktopWidget, QPushButton, QStyle
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QProgressBar,
+    QDesktopWidget,
+    QPushButton,
+    QStyle,
+)
 from PyQt5.QtGui import QMouseEvent
 from PyQt5.QtCore import QTimer, Qt, QPoint
 
@@ -41,7 +51,7 @@ class SystemMonitor(QMainWindow):
     def init_ui(self):
         self.setWindowTitle("System Monitor")
         self.setGeometry(0, 0, 220, 300)
-        self.setWindowFlags(Qt.WindowStaysOnTopHint |  Qt.FramelessWindowHint | Qt.Tool)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
 
@@ -56,10 +66,14 @@ class SystemMonitor(QMainWindow):
     def toggle_movable(self):
         self.is_movable = not self.is_movable
         if self.is_movable:
-            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+            self.pin_button.setIcon(
+                self.style().standardIcon(QStyle.SP_DialogApplyButton)
+            )
             self.pin_button.setStyleSheet("background-color: green;")
         else:
-            self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogCancelButton))
+            self.pin_button.setIcon(
+                self.style().standardIcon(QStyle.SP_DialogCancelButton)
+            )
             self.pin_button.setStyleSheet("background-color: red;")
 
     def mousePressEvent(self, event: QMouseEvent):
@@ -67,7 +81,11 @@ class SystemMonitor(QMainWindow):
             self.old_pos = event.globalPos()
 
     def mouseMoveEvent(self, event: QMouseEvent):
-        if self.is_movable and self.old_pos is not None and event.buttons() == Qt.LeftButton:
+        if (
+            self.is_movable
+            and self.old_pos is not None
+            and event.buttons() == Qt.LeftButton
+        ):
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self.old_pos = event.globalPos()
@@ -114,7 +132,8 @@ class SystemMonitor(QMainWindow):
         self.progress_bar_download = QProgressBar(self.central_widget)
 
         self.progress_bar_upload.setFormat("")
-        self.progress_bar_upload.setStyleSheet("""
+        self.progress_bar_upload.setStyleSheet(
+            """
             QProgressBar {
                 border: 1px solid gray;
                 border-radius: 3px;
@@ -126,10 +145,12 @@ class SystemMonitor(QMainWindow):
                 background-color: rgba(255, 120, 50, 255);
                 margin: 0px;
             }
-        """)
+        """
+        )
 
         self.progress_bar_download.setFormat("")
-        self.progress_bar_download.setStyleSheet("""
+        self.progress_bar_download.setStyleSheet(
+            """
             QProgressBar {
                 border: 1px solid gray;
                 border-radius: 3px;
@@ -141,7 +162,8 @@ class SystemMonitor(QMainWindow):
                 background-color: rgba(150, 50, 200, 255);
                 margin: 0px;
             }
-        """)
+        """
+        )
 
         self.layout.addWidget(self.progress_bar_upload)
         self.layout.addWidget(self.progress_bar_download)
@@ -172,7 +194,11 @@ class SystemMonitor(QMainWindow):
         self.label_disk.clear()
         self.progress_bar_disk.clear()
 
-        accessible_partitions = [p for p in psutil.disk_partitions() if os.path.exists(p.mountpoint) and os.access(p.mountpoint, os.R_OK)]
+        accessible_partitions = [
+            p
+            for p in psutil.disk_partitions()
+            if os.path.exists(p.mountpoint) and os.access(p.mountpoint, os.R_OK)
+        ]
         for _ in accessible_partitions:
             label, progress_bar = self.create_label_progress_bar()
             self.label_disk.append(label)
@@ -185,7 +211,8 @@ class SystemMonitor(QMainWindow):
         progress_bar = QProgressBar(self.central_widget)
         progress_bar.setRange(0, 100)
         progress_bar.setFormat("")
-        progress_bar.setStyleSheet("""
+        progress_bar.setStyleSheet(
+            """
             QProgressBar {
                 border: 1px solid gray;
                 border-radius: 3px;
@@ -196,7 +223,8 @@ class SystemMonitor(QMainWindow):
                 background-color: #05B8CC;
                 margin: 0px;
             }
-        """)
+        """
+        )
         return label, progress_bar
 
     def create_label(self):
@@ -217,8 +245,16 @@ class SystemMonitor(QMainWindow):
             self.max_upload_rate = max(self.max_upload_rate, upload)
             self.max_download_rate = max(self.max_download_rate, download)
 
-            upload_percentage = int(upload / self.max_upload_rate * 100) if self.max_upload_rate > 0 else 0
-            download_percentage = int(download / self.max_download_rate * 100) if self.max_download_rate > 0 else 0
+            upload_percentage = (
+                int(upload / self.max_upload_rate * 100)
+                if self.max_upload_rate > 0
+                else 0
+            )
+            download_percentage = (
+                int(download / self.max_download_rate * 100)
+                if self.max_download_rate > 0
+                else 0
+            )
 
             if upload > 1024:
                 upload /= 1024
@@ -232,7 +268,9 @@ class SystemMonitor(QMainWindow):
             else:
                 download_unit = "KB/s"
 
-            self.label_network.setText(f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}")
+            self.label_network.setText(
+                f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}"
+            )
             self.progress_bar_upload.setValue(upload_percentage)
             self.progress_bar_download.setValue(download_percentage)
         except Exception as e:
@@ -268,22 +306,30 @@ class SystemMonitor(QMainWindow):
             mem_usage = mem.percent
             mem_used_gb = mem.used / 1024 / 1024 / 1024
             mem_total_gb = mem.total / 1024 / 1024 / 1024
-            self.label_mem.setText(f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB")
+            self.label_mem.setText(
+                f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB"
+            )
             self.progress_bar_mem.setValue(int(mem_usage))
         except Exception as e:
             self.label_mem.setText("Memory monitoring error")
             print(f"Error monitoring memory: {e}")
 
     def update_disk_info(self):
-        accessible_partitions = [p for p in psutil.disk_partitions() if os.path.exists(p.mountpoint) and os.access(p.mountpoint, os.R_OK)]
+        accessible_partitions = [
+            p
+            for p in psutil.disk_partitions()
+            if os.path.exists(p.mountpoint) and os.access(p.mountpoint, os.R_OK)
+        ]
 
         try:
             for index, partition in enumerate(accessible_partitions):
                 disk_usage = psutil.disk_usage(partition.mountpoint)
                 disk_usage_percent = disk_usage.percent
-                disk_total_gb = disk_usage.total / (1024 ** 3)
-                disk_used_gb = disk_usage.used / (1024 ** 3)
-                self.label_disk[index].setText(f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB")
+                disk_total_gb = disk_usage.total / (1024**3)
+                disk_used_gb = disk_usage.used / (1024**3)
+                self.label_disk[index].setText(
+                    f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB"
+                )
                 self.progress_bar_disk[index].setValue(int(disk_usage_percent))
         except Exception as e:
             print(f"Error monitoring disk: {e}")
@@ -291,7 +337,12 @@ class SystemMonitor(QMainWindow):
     def set_geometry_to_bottom(self):
         desktop = QDesktopWidget()
         screen = desktop.availableGeometry(self)
-        self.setGeometry(screen.width() - self.width(), screen.height() - self.height(), self.width(), self.height())
+        self.setGeometry(
+            screen.width() - self.width(),
+            screen.height() - self.height(),
+            self.width(),
+            self.height(),
+        )
 
 
 def main():
@@ -301,5 +352,5 @@ def main():
     sys.exit(app.exec_())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

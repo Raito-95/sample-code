@@ -13,6 +13,7 @@ def linear_search(item, items):
             return index
     return None  # Item not found
 
+
 def binary_search(item, items):
     """
     Performs a binary search to find the index of an item in a sorted list.
@@ -34,6 +35,7 @@ def binary_search(item, items):
             last = mid - 1
     return None  # Item not found
 
+
 def main():
     """
     Main function to demonstrate the functionality of search algorithms with various test cases.
@@ -42,8 +44,13 @@ def main():
     test_searches = [30, 70, 110]
 
     for search_item in test_searches:
-        print(f"Linear Search for {search_item}: Index = {linear_search(search_item, test_items)}")
-        print(f"Binary Search for {search_item}: Index = {binary_search(search_item, test_items)}")
+        print(
+            f"Linear Search for {search_item}: Index = {linear_search(search_item, test_items)}"
+        )
+        print(
+            f"Binary Search for {search_item}: Index = {binary_search(search_item, test_items)}"
+        )
+
 
 if __name__ == "__main__":
     main()

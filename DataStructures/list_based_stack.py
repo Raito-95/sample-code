@@ -45,6 +45,7 @@ class Stack:
         """
         return list(reversed(self.items))  # Display from top to bottom
 
+
 # Usage example
 stack = Stack()
 stack.push(1)

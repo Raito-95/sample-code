@@ -10,7 +10,7 @@ def capture_screen_frame():
     return img_bgr
 
 
-def initialize_video_writer(output_filename, frame_size, frame_rate=30, codec='XVID'):
+def initialize_video_writer(output_filename, frame_size, frame_rate=30, codec="XVID"):
     """Initialize and return a video writer object."""
     fourcc = cv2.VideoWriter_fourcc(*codec)
     return cv2.VideoWriter(output_filename, fourcc, frame_rate, frame_size)
@@ -19,7 +19,7 @@ def initialize_video_writer(output_filename, frame_size, frame_rate=30, codec='X
 def main():
     try:
         # Define output video parameters
-        output_filename = 'screen_capture.avi'
+        output_filename = "screen_capture.avi"
         frame_rate = 30
 
         # Capture an initial frame to get screen dimensions

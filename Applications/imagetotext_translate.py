@@ -11,10 +11,11 @@ import pytesseract
 load_dotenv()
 
 # API key for Google Cloud Translation
-API_KEY = os.getenv('GCP_TOKEN')
+API_KEY = os.getenv("GCP_TOKEN")
 
 # Google Cloud Translation API URL
-TRANSLATE_URL = 'https://translation.googleapis.com/language/translate/v2'
+TRANSLATE_URL = "https://translation.googleapis.com/language/translate/v2"
+
 
 # Image preprocessing to enhance OCR accuracy
 def preprocess_image(image, show_images=False):
@@ -42,6 +43,7 @@ def preprocess_image(image, show_images=False):
 
     return image
 
+
 # Define a function to recognize and translate text in an image
 def translate_image_text(image, show_images=False):
     # Preprocess the image to improve OCR accuracy
@@ -49,10 +51,11 @@ def translate_image_text(image, show_images=False):
     # Use Tesseract OCR to recognize text in the image
     extracted_text = pytesseract.image_to_string(image)
     # Clean and format the extracted text
-    extracted_text = extracted_text.replace('\n', ' ')
+    extracted_text = extracted_text.replace("\n", " ")
     return extracted_text
 
-def translate_text_free(text, target_language='zh-TW'):
+
+def translate_text_free(text, target_language="zh-TW"):
     translator = Translator(to_lang=target_language)
     try:
         translated_text = translator.translate(text)
@@ -60,21 +63,19 @@ def translate_text_free(text, target_language='zh-TW'):
     except Exception as e:
         return f"An error occurred during translation: {e}"
 
+
 # Translate text using Google Cloud Translation API
-def translate_text(text, target_language='zh-TW'):
-    params = {
-        'q': text,
-        'target': target_language,
-        'key': API_KEY
-    }
+def translate_text(text, target_language="zh-TW"):
+    params = {"q": text, "target": target_language, "key": API_KEY}
     try:
         response = requests.post(TRANSLATE_URL, params=params, timeout=10)
         result = response.json()
-        return result['data']['translations'][0]['translatedText']
+        return result["data"]["translations"][0]["translatedText"]
     except requests.Timeout:
         return "Translation request timed out"
     except requests.RequestException as e:
         return f"An error occurred: {e}"
+
 
 # Monitor clipboard changes and perform OCR and translation
 def monitor_clipboard(show_images=False):
@@ -99,10 +100,10 @@ def monitor_clipboard(show_images=False):
                         translated_text = translate_text(extracted_text)
                         translated_text_free = translate_text_free(extracted_text)
                         print(extracted_text)
-                        print('**********')
-                        print(f'Paid: {translated_text}')
-                        print('**********')
-                        print(f'Free: {translated_text_free}')
+                        print("**********")
+                        print(f"Paid: {translated_text}")
+                        print("**********")
+                        print(f"Free: {translated_text_free}")
                         print("--------------------------------------------------")
 
                     # Update previous_image to avoid processing the same image again

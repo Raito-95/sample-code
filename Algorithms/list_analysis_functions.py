@@ -11,6 +11,7 @@ def is_sorted(items):
         return True  # An empty list is considered sorted
     return all(items[i] <= items[i + 1] for i in range(len(items) - 1))
 
+
 def find_max(items):
     """
     Finds the maximum value in a list using a recursive approach.
@@ -30,13 +31,21 @@ def find_max(items):
     op2 = find_max(items[1:])
     return op1 if op1 > op2 else op2
 
+
 def main():
     """
     Main function to demonstrate the functionality of list analysis functions.
     """
-    test_lists = [[], [1], [1, 2, 3, 4, 5], [5, 4, 3, 2, 1], [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]]
+    test_lists = [
+        [],
+        [1],
+        [1, 2, 3, 4, 5],
+        [5, 4, 3, 2, 1],
+        [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5],
+    ]
     for lst in test_lists:
         print(f"List: {lst} Is sorted: {is_sorted(lst)} Max value: {find_max(lst)}")
+
 
 if __name__ == "__main__":
     main()

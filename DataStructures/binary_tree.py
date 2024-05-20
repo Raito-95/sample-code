@@ -4,6 +4,7 @@ class TreeNode:
         self.left = None
         self.right = None
 
+
 class BinaryTree:
     def __init__(self):
         self.root = None
@@ -56,6 +57,7 @@ class BinaryTree:
             res.extend(self._postorder_recursive(node.right))
             res.append(node.data)
         return res
+
 
 # Usage example
 binary_tree = BinaryTree()

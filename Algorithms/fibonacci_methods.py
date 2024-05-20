@@ -24,6 +24,7 @@ def fibonacci_recursive(n, memo=None):
         memo[n] = result
         return result
 
+
 def fibonacci_iterative(n):
     """
     Iteratively calculates the nth Fibonacci number.
@@ -44,14 +45,18 @@ def fibonacci_iterative(n):
         fib.append(fib[i - 1] + fib[i - 2])
     return fib[n]
 
+
 def main():
     # Test the function with valid and invalid inputs
     test_cases = [-1, 0, 1, 10]
     for case in test_cases:
         try:
-            print(f"Fibonacci {case}: Recursive: {fibonacci_recursive(case)}, Iterative: {fibonacci_iterative(case)}")
+            print(
+                f"Fibonacci {case}: Recursive: {fibonacci_recursive(case)}, Iterative: {fibonacci_iterative(case)}"
+            )
         except ValueError as e:
             print(e)
+
 
 if __name__ == "__main__":
     main()
