@@ -258,6 +258,9 @@ class ScreenMonitor:
         return similarity
 
     def discard_ore(self, slot_x: int, slot_y: int, slot_width: int, slot_height: int):
+        if self.inventory_area is None:
+            return
+        
         inventory_top_left = self.inventory_area[0:2]
         slot_center_x = inventory_top_left[0] + slot_x + slot_width // 2
         slot_center_y = inventory_top_left[1] + slot_y + slot_height // 2

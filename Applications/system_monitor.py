@@ -58,22 +58,20 @@ class SystemMonitor(QMainWindow):
         self.pin_button = QPushButton(self)
         self.pin_button.setCheckable(True)
         self.pin_button.setChecked(True)
-        self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+        style = self.style() if self.style() else QApplication.style()
+        self.pin_button.setIcon(style.standardIcon(QStyle.SP_DialogApplyButton))
         self.pin_button.setStyleSheet("background-color: green;")
         self.pin_button.clicked.connect(self.toggle_movable)
         self.pin_button.setGeometry(190, 10, 20, 20)
 
     def toggle_movable(self):
         self.is_movable = not self.is_movable
+        style = self.style() if self.style() else QApplication.style()
         if self.is_movable:
-            self.pin_button.setIcon(
-                self.style().standardIcon(QStyle.SP_DialogApplyButton)
-            )
+            self.pin_button.setIcon(style.standardIcon(QStyle.SP_DialogApplyButton))
             self.pin_button.setStyleSheet("background-color: green;")
         else:
-            self.pin_button.setIcon(
-                self.style().standardIcon(QStyle.SP_DialogCancelButton)
-            )
+            self.pin_button.setIcon(style.standardIcon(QStyle.SP_DialogCancelButton))
             self.pin_button.setStyleSheet("background-color: red;")
 
     def mousePressEvent(self, event: QMouseEvent):
@@ -185,11 +183,13 @@ class SystemMonitor(QMainWindow):
 
     def init_disk_widgets(self):
         for label in self.label_disk:
-            self.layout.removeWidget(label)
-            label.deleteLater()
+            if label is not None:
+                self.layout.removeWidget(label)
+                label.deleteLater()
         for bar in self.progress_bar_disk:
-            self.layout.removeWidget(bar)
-            bar.deleteLater()
+            if bar is not None:
+                self.layout.removeWidget(bar)
+                bar.deleteLater()
 
         self.label_disk.clear()
         self.progress_bar_disk.clear()
@@ -268,22 +268,29 @@ class SystemMonitor(QMainWindow):
             else:
                 download_unit = "KB/s"
 
-            self.label_network.setText(
-                f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}"
-            )
-            self.progress_bar_upload.setValue(upload_percentage)
-            self.progress_bar_download.setValue(download_percentage)
+            if self.label_network is not None:
+                self.label_network.setText(
+                    f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}"
+                )
+            if self.progress_bar_upload is not None:
+                self.progress_bar_upload.setValue(upload_percentage)
+            if self.progress_bar_download is not None:
+                self.progress_bar_download.setValue(download_percentage)
         except Exception as e:
-            self.label_network.setText("Network monitoring error")
+            if self.label_network is not None:
+                self.label_network.setText("Network monitoring error")
             print(f"Error monitoring network: {e}")
 
     def update_cpu_info(self):
         try:
             cpu_usage = psutil.cpu_percent()
-            self.label_cpu.setText(f"CPU: {cpu_usage:.1f}%")
-            self.progress_bar_cpu.setValue(int(cpu_usage))
+            if self.label_cpu is not None:
+                self.label_cpu.setText(f"CPU: {cpu_usage:.1f}%")
+            if self.progress_bar_cpu is not None:
+                self.progress_bar_cpu.setValue(int(cpu_usage))
         except Exception as e:
-            self.label_cpu.setText("CPU monitoring error")
+            if self.label_cpu is not None:
+                self.label_cpu.setText("CPU monitoring error")
             print(f"Error monitoring CPU: {e}")
 
     def update_gpu_info(self):
@@ -292,12 +299,18 @@ class SystemMonitor(QMainWindow):
             if gpu_info:
                 gpu_usage = gpu_info.load * 100
                 gpu_temp = gpu_info.temperature
-                self.label_gpu.setText(f"GPU: {gpu_usage:.1f}% - Temp: {gpu_temp}°C")
-                self.progress_bar_gpu.setValue(int(gpu_usage))
+                if self.label_gpu is not None:
+                    self.label_gpu.setText(
+                        f"GPU: {gpu_usage:.1f}% - Temp: {gpu_temp}°C"
+                    )
+                if self.progress_bar_gpu is not None:
+                    self.progress_bar_gpu.setValue(int(gpu_usage))
             else:
-                self.label_gpu.setText("No GPU detected")
+                if self.label_gpu is not None:
+                    self.label_gpu.setText("No GPU detected")
         except Exception as e:
-            self.label_gpu.setText("GPU monitoring error")
+            if self.label_gpu is not None:
+                self.label_gpu.setText("GPU monitoring error")
             print(f"Error monitoring GPU: {e}")
 
     def update_memory_info(self):
@@ -306,12 +319,15 @@ class SystemMonitor(QMainWindow):
             mem_usage = mem.percent
             mem_used_gb = mem.used / 1024 / 1024 / 1024
             mem_total_gb = mem.total / 1024 / 1024 / 1024
-            self.label_mem.setText(
-                f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB"
-            )
-            self.progress_bar_mem.setValue(int(mem_usage))
+            if self.label_mem is not None:
+                self.label_mem.setText(
+                    f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB"
+                )
+            if self.progress_bar_mem is not None:
+                self.progress_bar_mem.setValue(int(mem_usage))
         except Exception as e:
-            self.label_mem.setText("Memory monitoring error")
+            if self.label_mem is not None:
+                self.label_mem.setText("Memory monitoring error")
             print(f"Error monitoring memory: {e}")
 
     def update_disk_info(self):
@@ -327,10 +343,12 @@ class SystemMonitor(QMainWindow):
                 disk_usage_percent = disk_usage.percent
                 disk_total_gb = disk_usage.total / (1024**3)
                 disk_used_gb = disk_usage.used / (1024**3)
-                self.label_disk[index].setText(
-                    f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB"
-                )
-                self.progress_bar_disk[index].setValue(int(disk_usage_percent))
+                if self.label_disk[index] is not None:
+                    self.label_disk[index].setText(
+                        f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB"
+                    )
+                if self.progress_bar_disk[index] is not None:
+                    self.progress_bar_disk[index].setValue(int(disk_usage_percent))
         except Exception as e:
             print(f"Error monitoring disk: {e}")
 

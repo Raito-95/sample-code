@@ -19,35 +19,30 @@ from PyQt5.QtCore import QTimer, Qt, QPoint
 class LineGraphWidget(QWidget):
     def __init__(self, parent=None, line_color=QColor(5, 184, 204), dynamic_max=False):
         super(LineGraphWidget, self).__init__(parent)
-        self.usage_data = []  # Initialize as an empty list
+        self.usage_data = []
         self.line_color = line_color
-        self.dynamic_max = dynamic_max  # Set whether to use dynamic max value
+        self.dynamic_max = dynamic_max
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         w, h = self.width(), self.height()
 
-        # Draw background
         painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 50))
 
-        # Determine the max value based on dynamic_max flag
         if not self.usage_data:
             return
         max_value = max(self.usage_data) if self.dynamic_max else 100
 
-        # Function to scale the height relative to the max value
         def scaled_height(value):
             return h - (value * h / max_value)
 
-        # Create a path for the line graph
         path = QPainterPath()
         step = w / max(len(self.usage_data) - 1, 1)
         path.moveTo(0, scaled_height(self.usage_data[0]))
         for i in range(1, len(self.usage_data)):
             path.lineTo(int(i * step), scaled_height(self.usage_data[i]))
 
-        # Draw the filled area under the line
         fill_path = QPainterPath(path)
         fill_path.lineTo(w, h)
         fill_path.lineTo(0, h)
@@ -62,7 +57,6 @@ class LineGraphWidget(QWidget):
             ),
         )
 
-        # Draw the line graph
         painter.setPen(QPen(self.line_color, 2))
         painter.drawPath(path)
 
@@ -70,7 +64,7 @@ class LineGraphWidget(QWidget):
         self.usage_data.append(usage)
         if len(self.usage_data) > 100:
             self.usage_data.pop(0)
-        self.update()  # Trigger a repaint
+        self.update()
 
 
 class SystemMonitor(QMainWindow):
@@ -110,22 +104,20 @@ class SystemMonitor(QMainWindow):
         self.pin_button = QPushButton(self)
         self.pin_button.setCheckable(True)
         self.pin_button.setChecked(True)
-        self.pin_button.setIcon(self.style().standardIcon(QStyle.SP_DialogApplyButton))
+        style = self.style() if self.style() else QApplication.style()
+        self.pin_button.setIcon(style.standardIcon(QStyle.SP_DialogApplyButton))
         self.pin_button.setStyleSheet("background-color: green;")
         self.pin_button.clicked.connect(self.toggle_movable)
         self.pin_button.setGeometry(190, 10, 20, 20)
 
     def toggle_movable(self):
         self.is_movable = not self.is_movable
+        style = self.style() if self.style() else QApplication.style()
         if self.is_movable:
-            self.pin_button.setIcon(
-                self.style().standardIcon(QStyle.SP_DialogApplyButton)
-            )
+            self.pin_button.setIcon(style.standardIcon(QStyle.SP_DialogApplyButton))
             self.pin_button.setStyleSheet("background-color: green;")
         else:
-            self.pin_button.setIcon(
-                self.style().standardIcon(QStyle.SP_DialogCancelButton)
-            )
+            self.pin_button.setIcon(style.standardIcon(QStyle.SP_DialogCancelButton))
             self.pin_button.setStyleSheet("background-color: red;")
 
     def mousePressEvent(self, event: QMouseEvent):

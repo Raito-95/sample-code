@@ -5,6 +5,7 @@ from PIL import ImageGrab
 import numpy as np
 import cv2
 import pyautogui
+import time
 
 
 class ScreenRecorderApp:
@@ -71,6 +72,8 @@ class ScreenRecorderApp:
         self.rect = None
         self.video_writer = None
         self.recording = False
+        self.fps = 30
+        self.last_time = time.time()
 
     def start_select_area(self):
         self.selection_window = tk.Toplevel(self.root)
@@ -127,12 +130,27 @@ class ScreenRecorderApp:
             messagebox.showwarning("Warning", "Recording area is not set correctly.")
             return
 
-        fourcc = cv2.VideoWriter_fourcc(*"XVID")
-        temp_filename = "temp_screen_capture.avi"
+        save_path = filedialog.asksaveasfilename(
+            defaultextension=".avi",
+            filetypes=[("AVI files", "*.avi"), ("MP4 files", "*.mp4")],
+        )
+        if not save_path:
+            messagebox.showwarning("Warning", "No save file selected.")
+            return
+
+        file_extension = os.path.splitext(save_path)[1].lower()
+        if file_extension == ".avi":
+            fourcc = cv2.VideoWriter_fourcc(*"XVID")
+        elif file_extension == ".mp4":
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        else:
+            messagebox.showwarning("Warning", "Unsupported file format selected.")
+            return
+
         self.video_writer = cv2.VideoWriter(
-            temp_filename,
+            save_path,
             fourcc,
-            30.0,
+            self.fps,
             (self.rect[2] - self.rect[0], self.rect[3] - self.rect[1]),
         )
 
@@ -144,38 +162,36 @@ class ScreenRecorderApp:
 
     def stop_recording(self):
         self.recording = False
-        self.video_writer.release()
+        if self.video_writer is not None:
+            self.video_writer.release()
         self.start_button.config(state=tk.DISABLED)
         self.stop_button.config(state=tk.DISABLED)
         self.select_area_button.config(state=tk.NORMAL)
         self.recording_status.config(text="Status: Not Recording")
-
-        save_path = filedialog.asksaveasfilename(
-            defaultextension=".avi", filetypes=[("AVI files", "*.avi")]
-        )
-        if save_path:
-            os.rename("temp_screen_capture.avi", save_path)
-            messagebox.showinfo("Info", f"Recording saved to: {save_path}")
-        else:
-            os.remove("temp_screen_capture.avi")
-            messagebox.showinfo("Info", "Recording discarded.")
+        messagebox.showinfo("Info", "Recording stopped and saved.")
 
     def update(self):
         if self.recording and self.rect is not None:
-            screenshot = ImageGrab.grab(bbox=self.rect)
-            frame = np.array(screenshot)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            current_time = time.time()
+            if current_time - self.last_time >= 1 / self.fps:
+                left = min(self.rect[0], self.rect[2])
+                top = min(self.rect[1], self.rect[3])
+                right = max(self.rect[0], self.rect[2])
+                bottom = max(self.rect[1], self.rect[3])
+                screenshot = ImageGrab.grab(bbox=(left, top, right, bottom))
+                frame = np.array(screenshot)
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            mouse_x, mouse_y = pyautogui.position()
-            if (
-                self.rect[0] <= mouse_x <= self.rect[2]
-                and self.rect[1] <= mouse_y <= self.rect[3]
-            ):
-                center_x = int(mouse_x - self.rect[0])
-                center_y = int(mouse_y - self.rect[1])
-                cv2.circle(frame, (center_x, center_y), 5, (0, 0, 255), -1)
+                mouse_x, mouse_y = pyautogui.position()
+                if left <= mouse_x <= right and top <= mouse_y <= bottom:
+                    center_x = int(mouse_x - left)
+                    center_y = int(mouse_y - top)
+                    cv2.circle(frame, (center_x, center_y), 5, (0, 0, 255), -1)
 
-            self.video_writer.write(frame)
+                if self.video_writer is not None:
+                    self.video_writer.write(frame)
+
+                self.last_time = current_time
 
         self.root.after(10, self.update)
 

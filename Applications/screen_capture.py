@@ -1,6 +1,8 @@
 import cv2
 from PIL import ImageGrab
 import numpy as np
+import time
+import keyboard
 
 
 def capture_screen_frame():
@@ -21,6 +23,7 @@ def main():
         # Define output video parameters
         output_filename = "screen_capture.avi"
         frame_rate = 30
+        delay = 1 / frame_rate
 
         # Capture an initial frame to get screen dimensions
         initial_frame = capture_screen_frame()
@@ -30,11 +33,28 @@ def main():
         # Initialize video writer
         video_writer = initialize_video_writer(output_filename, frame_size, frame_rate)
 
-        print("Starting screen capture. Press 'Ctrl+C' to stop.")
+        print("Press 'p' to start/pause/resume recording. Press 'Ctrl+C' to stop.")
+
+        is_recording = False
 
         while True:
-            frame = capture_screen_frame()
-            video_writer.write(frame)
+            start_time = time.time()
+
+            if keyboard.is_pressed("p"):
+                is_recording = not is_recording
+                if is_recording:
+                    print("Started recording.")
+                else:
+                    print("Paused recording.")
+                time.sleep(0.5)
+
+            if is_recording:
+                frame = capture_screen_frame()
+                video_writer.write(frame)
+
+            elapsed_time = time.time() - start_time
+            sleep_time = max(0, delay - elapsed_time)
+            time.sleep(sleep_time)
 
     except KeyboardInterrupt:
         print("Screen capture stopped by user.")
@@ -43,8 +63,8 @@ def main():
         print(f"An error occurred: {e}")
 
     finally:
-        # Release the video writer
-        video_writer.release()
+        if "video_writer" in locals():
+            video_writer.release()
         print(f"Video saved as {output_filename}")
 
 
