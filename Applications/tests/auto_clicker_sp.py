@@ -662,7 +662,7 @@ def color_printing_thread(stop_event, interval=1):
 
         screen = ImageGrab.grab(bbox=(left, top, right, bottom))
         match_percentage = find_color_matches(screen, unique_colors, TOLERANCE)
-        print(f'Matching percentage: {match_percentage}%')
+        print(f"Matching percentage: {match_percentage}%")
         print("---\n")
         time.sleep(interval)
 
@@ -675,7 +675,7 @@ def main():
 
     try:
         while True:
-            if keyboard.is_pressed('z'):
+            if keyboard.is_pressed("z"):
                 clicking_enabled = not clicking_enabled
                 print("Clicking enabled:", clicking_enabled)
                 time.sleep(0.5)

@@ -6,7 +6,7 @@ import threading
 import keyboard
 import pyautogui
 import time
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List, Optional
 
 HUE_RANGE = ((0, 10), (160, 180))
 SAT_MIN = 100
@@ -15,7 +15,7 @@ HIST_SIZE = [8, 8, 8]
 HIST_RANGE = [0, 256, 0, 256, 0, 256]
 
 
-def calculate_red_percentage(img_np):
+def calculate_red_percentage(img_np: np.ndarray) -> float:
     img_hsv = cv2.cvtColor(img_np, cv2.COLOR_BGR2HSV)
     lower_red1 = np.array([HUE_RANGE[0][0], SAT_MIN, VAL_MIN])
     upper_red1 = np.array([HUE_RANGE[0][1], 255, 255])
@@ -24,11 +24,11 @@ def calculate_red_percentage(img_np):
 
     mask1 = cv2.inRange(img_hsv, lower_red1, upper_red1)
     mask2 = cv2.inRange(img_hsv, lower_red2, upper_red2)
-    mask = mask1 | mask2
+    mask = np.bitwise_or(mask1, mask2)
 
     red_pixels = np.sum(mask > 0)
     total_pixels = img_np.shape[0] * img_np.shape[1]
-    return (red_pixels / total_pixels) * 100
+    return float((red_pixels / total_pixels) * 100)
 
 
 class ScreenMonitor:
@@ -41,9 +41,9 @@ class ScreenMonitor:
         self.slot_rows = 4
         self.slot_cols = 10
         self.monitoring = False
-        self.monitoring_threads = []
-        self.hp_area = None
-        self.inventory_area = None
+        self.monitoring_threads: List[threading.Thread] = []
+        self.hp_area: Optional[Tuple[int, int, int, int]] = None
+        self.inventory_area: Optional[Tuple[int, int, int, int]] = None
         self.ore_templates = self.load_ore_templates()
         self.selection_window = None
 
@@ -110,7 +110,6 @@ class ScreenMonitor:
         self.selection_window.attributes("-fullscreen", True)
         self.selection_window.attributes("-topmost", True)
         self.selection_window.overrideredirect(True)
-
         self.selection_window.attributes("-alpha", 0.3)
         self.selection_window.configure(bg="gray")
 
@@ -143,12 +142,12 @@ class ScreenMonitor:
         cell_height = (y2 - y1) / self.slot_rows
 
         for i in range(self.slot_cols + 1):
-            x = x1 + i * cell_width
-            self.canvas.create_line(x, y1, x, y2, tag="grid", fill="red", width=3)
+            x = int(x1 + i * cell_width)
+            self.canvas.create_line(x, y1, x, y2, tags="grid", fill="red", width=3)
 
         for i in range(self.slot_rows + 1):
-            y = y1 + i * cell_height
-            self.canvas.create_line(x1, y, x2, y, tag="grid", fill="red", width=3)
+            y = int(y1 + i * cell_height)
+            self.canvas.create_line(x1, y, x2, y, tags="grid", fill="red", width=3)
 
     def end_select(self, event: tk.Event):
         area = (
