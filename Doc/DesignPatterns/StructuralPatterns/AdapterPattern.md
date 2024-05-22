@@ -9,7 +9,7 @@ The Adapter Pattern is a structural design pattern that allows objects with inco
 The Adapter Pattern can be implemented by defining an adapter class that wraps the existing class and provides the expected interface through delegation.
 
 ### Code Example
-
+```python
 class Target:
     """ The Target defines the domain-specific interface used by the client code. """
     def request(self):
@@ -35,6 +35,7 @@ print(f"Adaptee: {adaptee.specific_request()}")  # Adaptee's existing behavior d
 
 adapter = Adapter(adaptee)
 print(adapter.request())  # Output: Adapter: (TRANSLATED) Special behavior of the Adaptee.
+```
 
 ### Test Results
 

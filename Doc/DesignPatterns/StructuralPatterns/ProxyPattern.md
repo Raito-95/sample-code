@@ -9,7 +9,7 @@ The Proxy Pattern is a structural design pattern that provides an object represe
 The Proxy Pattern can be implemented by creating a proxy class that encapsulates the real class, interfacing with it as needed. This can involve forwarding requests to the real object, performing additional operations before or after forwarding, or even deciding not to forward requests based on certain conditions.
 
 ### Code Example
-
+```python
 class Subject:
     """ Define the common interface for RealSubject and Proxy so that a Proxy can be used anywhere a RealSubject is expected. """
     def request(self):
@@ -46,6 +46,7 @@ class Proxy(Subject):
 real_subject = RealSubject()
 proxy = Proxy(real_subject)
 print(proxy.request())  # Output: Proxy: Log start -> RealSubject: Handling request. -> Log end
+```
 
 ### Test Results
 

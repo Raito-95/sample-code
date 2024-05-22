@@ -9,7 +9,7 @@ The Decorator Pattern is a structural design pattern that allows behavior to be 
 The Decorator Pattern can be implemented by defining a base component interface and then creating several decorator classes that enhance the functionality of objects that implement this interface, without changing the object's core functionality.
 
 ### Code Example
-
+```python
 class Component:
     """ Defines the interface for objects that can have responsibilities added to them dynamically. """
     def operation(self):
@@ -47,6 +47,7 @@ print(decorated.operation())  # Output: ConcreteDecoratorA: Enhanced Operation (
 
 more_decorated = ConcreteDecoratorB(decorated)
 print(more_decorated.operation())  # Output: ConcreteDecoratorB: Enhanced Operation (ConcreteDecoratorA: Enhanced Operation (ConcreteComponent: Base Operation))
+```
 
 ### Test Results
 

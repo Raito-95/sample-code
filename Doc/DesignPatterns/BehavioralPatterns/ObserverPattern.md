@@ -9,7 +9,7 @@ The Observer Pattern is a behavioral design pattern in which an object, known as
 The Observer Pattern can be implemented in Python by creating a subject class that keeps track of observers and notifies them of changes, and observer classes that define the updating interface.
 
 ### Code Example
-
+```python
 class Subject:
     """ Represents what is being 'observed' """
     def __init__(self):
@@ -73,6 +73,7 @@ subject.attach(observer_b)
 subject.subject_state = "state changed"
 # Output: ConcreteObserverA: Reacted to the event
 #         ConcreteObserverB: Reacted to the event
+```
 
 ### Test Results
 

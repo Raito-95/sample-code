@@ -9,7 +9,7 @@ The Command Pattern is a behavioral design pattern that turns a request into a s
 The Command Pattern can be implemented by defining a command interface with an execute method, and concrete command classes that encapsulate a request by binding together all of the information needed to perform the action.
 
 ### Code Example
-
+```python
 class Command:
     """ The Command interface declares a method for executing a command. """
     def execute(self):
@@ -83,6 +83,7 @@ receiver = Receiver()
 invoker.on_finish = ComplexCommand(receiver, "Send email", "Save report")
 
 invoker.do_something_important()
+```
 
 ### Test Results
 

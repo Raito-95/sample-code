@@ -9,7 +9,7 @@ The Strategy Pattern is a behavioral design pattern that enables an algorithm's 
 The Strategy Pattern can be implemented by defining a context class to use different strategies, an interface common to all supported algorithms, and a set of strategies that implement these algorithmic operations.
 
 ### Code Example
-
+```
 class Strategy:
     """ Define an interface common to all supported algorithms. """
     def do_algorithm(self, data):
@@ -50,6 +50,7 @@ context.do_some_business_logic(data)  # Output: [5, 7, 23, 34, 89]
 
 context.strategy = ConcreteStrategyB()
 context.do_some_business_logic(data)  # Output: [89, 34, 23, 7, 5]
+```
 
 ### Test Results
 
