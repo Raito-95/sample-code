@@ -53,22 +53,3 @@ print(dog2.name)     # Molly
 print(dog1.description())  # Buddy is 2 years old
 print(dog2.description())  # Molly is 5 years old
 ```
-
-## 5. 繼承（Inheritance）
-
-繼承允許我們定義一個類別，該類別可以繼承另一個類別的屬性和方法。
-```python
-class Puppy(Dog):
-    def __init__(self, name, age, training_level):
-        super().__init__(name, age)  # 繼承父類的屬性
-        self.training_level = training_level  # 新屬性
-
-    def description(self):
-        return f"{self.name} is {self.age} years old and is at training level {self.training_level}"
-
-# 創建子類物件
-puppy1 = Puppy("Max", 1, "beginner")
-
-print(puppy1.description())  # Max is 1 years old and is at training level beginner
-print(puppy1.speak("Yip"))  # Max says Yip
-```
