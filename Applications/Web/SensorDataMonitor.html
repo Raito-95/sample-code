@@ -96,12 +96,12 @@
                 borderColor: colors[index],
                 data: [],
                 fill: false,
+                pointRadius: 0,
+                pointHoverRadius: 0,
               })),
             },
             options: {
-              animation: {
-                duration: 0,
-              },
+              animation: false,
               scales: {
                 x: {
                   type: "linear",
@@ -113,11 +113,24 @@
                   beginAtZero: false,
                 },
               },
+              plugins: {
+                legend: {
+                  display: true,
+                  onClick: (e, legendItem) => {
+                    const index = legendItem.datasetIndex;
+                    const chart = legendItem.chart;
+                    const meta = chart.getDatasetMeta(index);
+                    meta.hidden = !meta.hidden;
+                    chart.update();
+                  },
+                },
+              },
             },
           });
         }
 
         function updateDisplay() {
+          const fragment = document.createDocumentFragment();
           Object.keys(sensorData).forEach((sensorType) => {
             const sensorValuesDiv = document.getElementById(
               `${sensorType}-values`
@@ -132,8 +145,9 @@
               ].toFixed(4)} (Max: ${data.max[key].toFixed(4)}, Min: ${data.min[
                 key
               ].toFixed(4)})`;
-              sensorValuesDiv.appendChild(valueP);
+              fragment.appendChild(valueP);
             });
+            sensorValuesDiv.appendChild(fragment);
 
             if (chartEnabled[sensorType]) {
               const chart = chartInstances[sensorType];
@@ -143,14 +157,13 @@
                   dataset.data = data.data.map((point) => point[index]);
                 });
 
-                // Update Y axis range dynamically
                 const allDataPoints = data.data.flat();
                 const yAxisMin = Math.min(...allDataPoints);
                 const yAxisMax = Math.max(...allDataPoints);
                 chart.options.scales.y.min =
-                  yAxisMin - (yAxisMax - yAxisMin) * 0.1; // give some padding
+                  yAxisMin - (yAxisMax - yAxisMin) * 0.1;
                 chart.options.scales.y.max =
-                  yAxisMax + (yAxisMax - yAxisMin) * 0.1; // give some padding
+                  yAxisMax + (yAxisMax - yAxisMin) * 0.1;
 
                 chart.update();
               }
@@ -174,7 +187,7 @@
           data.data.push(sensorConfig[sensorType].map((axis) => newData[axis]));
           if (data.data.length > 100) data.data.shift();
 
-          updateDisplay();
+          requestAnimationFrame(updateDisplay);
         }
 
         function initSensors() {
