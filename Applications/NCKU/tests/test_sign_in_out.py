@@ -21,7 +21,6 @@ from AutomatedWorkClock import (
 )
 from selenium.webdriver.common.by import By
 
-
 class TestSignInOut(unittest.TestCase):
 
     @patch("AutomatedWorkClock.holidays.Taiwan")
@@ -64,9 +63,12 @@ class TestSignInOut(unittest.TestCase):
         driver = setup_driver()
         self.assertIsInstance(driver, MagicMock)
 
-    @patch("AutomatedWorkClock.WebDriverWait")
+    @patch("AutomatedWorkClock.WebDriverWait", autospec=True)
     def test_login(self, MockWebDriverWait):
         mock_driver = MagicMock()
+        mock_wait = MockWebDriverWait.return_value
+        mock_wait.until.return_value = MagicMock()
+
         login(mock_driver, "psn_code", "password")
         mock_driver.get.assert_called_with(
             "https://eadm.ncku.edu.tw/welldoc/ncku/iftwd/signIn.php"
@@ -74,21 +76,19 @@ class TestSignInOut(unittest.TestCase):
         mock_driver.find_element.assert_any_call(By.ID, "psnCode")
         mock_driver.find_element.assert_any_call(By.ID, "password")
 
-    @patch("AutomatedWorkClock.WebDriverWait")
+    @patch("AutomatedWorkClock.WebDriverWait", autospec=True)
     def test_click_button(self, MockWebDriverWait):
         mock_driver = MagicMock()
-        mock_wait = MagicMock()
-        MockWebDriverWait.return_value = mock_wait
+        mock_wait = MockWebDriverWait.return_value
         mock_wait.until.return_value = MagicMock()
 
         click_button(mock_driver, "button_text")
         mock_wait.until.assert_called_once()
 
-    @patch("AutomatedWorkClock.WebDriverWait")
+    @patch("AutomatedWorkClock.WebDriverWait", autospec=True)
     def test_view_swipe_card_records(self, MockWebDriverWait):
         mock_driver = MagicMock()
-        mock_wait = MagicMock()
-        MockWebDriverWait.return_value = mock_wait
+        mock_wait = MockWebDriverWait.return_value
         mock_wait.until.return_value = MagicMock()
 
         records = view_swipe_card_records(mock_driver)
@@ -152,6 +152,6 @@ class TestSignInOut(unittest.TestCase):
         mock_login.assert_called()
         mock_execute.assert_called()
 
-
 if __name__ == "__main__":
     unittest.main()
+
