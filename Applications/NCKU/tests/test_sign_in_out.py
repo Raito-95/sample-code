@@ -21,6 +21,7 @@ from AutomatedWorkClock import (
 )
 from selenium.webdriver.common.by import By
 
+
 class TestSignInOut(unittest.TestCase):
 
     @patch("AutomatedWorkClock.holidays.Taiwan")
@@ -152,6 +153,6 @@ class TestSignInOut(unittest.TestCase):
         mock_login.assert_called()
         mock_execute.assert_called()
 
+
 if __name__ == "__main__":
     unittest.main()
-
