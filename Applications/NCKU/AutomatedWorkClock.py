@@ -9,25 +9,23 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 import holidays
+from typing import List, Dict, Any, Tuple
 
-# Initialize logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-# Define the path to the JSON file containing configuration settings
 json_file_path = os.path.join(os.path.dirname(__file__), "credentials.json")
-# Initialize holidays for Taiwan
 tw_holidays = holidays.Taiwan()
 
 
-def validate_config(config):
-    """Validate the configuration settings."""
+def validate_config(config: Dict[str, Any]) -> None:
+    """Validate configuration settings"""
     required_keys = [
         "psn_code",
         "password",
@@ -37,30 +35,34 @@ def validate_config(config):
     ]
     for key in required_keys:
         if key not in config:
-            raise ValueError(f"Missing '{key}' in configuration.")
+            raise ValueError(f"Configuration missing '{key}'.")
 
     if not (0 <= config["sign_in_minute_start"] < config["sign_in_minute_end"] <= 20):
         raise ValueError("Invalid sign-in minute range in configuration.")
 
 
-def is_holiday(date):
-    """Check if the given date is a holiday in Taiwan."""
+def is_holiday(date: datetime) -> bool:
+    """Check if the given date is a holiday in Taiwan"""
     return date in tw_holidays
 
 
-def setup_driver():
-    """Set up the Chrome WebDriver with headless mode and disabled GPU acceleration."""
+def setup_driver() -> webdriver.Chrome:
+    """Set up Chrome WebDriver in headless mode with GPU acceleration disabled"""
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()), options=chrome_options
-    )
+    try:
+        driver = webdriver.Chrome(
+            service=Service(ChromeDriverManager().install()), options=chrome_options
+        )
+    except Exception as e:
+        logging.error("Failed to initialize browser driver: %s", e)
+        raise
     return driver
 
 
-def login(driver, psn_code, password):
-    """Log into the website using the provided credentials."""
+def login(driver: webdriver.Chrome, psn_code: str, password: str) -> None:
+    """Log in to the website using provided credentials"""
     driver.get("https://eadm.ncku.edu.tw/welldoc/ncku/iftwd/signIn.php")
     driver.find_element(By.ID, "psnCode").send_keys(psn_code)
     driver.find_element(By.ID, "password").send_keys(password)
@@ -73,65 +75,93 @@ def login(driver, psn_code, password):
         pass
 
 
-def click_button(driver, button_text, wait_time=10):
-    """Wait for a button with the specified text to be clickable and then click it."""
-    wait = WebDriverWait(driver, wait_time)
-    button_xpath = f"//button[contains(text(), '{button_text}')]"
-    button = wait.until(EC.element_to_be_clickable((By.XPATH, button_xpath)))
-    button.click()
-    time.sleep(5)
+def click_button(
+    driver: webdriver.Chrome, button_text: str, wait_time: int = 10
+) -> None:
+    """Wait for a button with specified text to be clickable, then click it"""
+    try:
+        wait = WebDriverWait(driver, wait_time)
+        button_xpath = f"//button[contains(text(), '{button_text}')]"
+        button = wait.until(EC.element_to_be_clickable((By.XPATH, button_xpath)))
+        button.click()
+        time.sleep(5)
+    except TimeoutException as e:
+        logging.error("Failed to click button '%s': %s", button_text, e)
+        raise
 
 
-def view_swipe_card_records(driver, wait_time=10):
-    """Clicks the button to view today's swipe card records and extracts the data."""
+def view_swipe_card_records(
+    driver: webdriver.Chrome, wait_time: int = 10
+) -> List[Dict[str, str]]:
+    """Click button to view today's swipe card records and extract data"""
     click_button(driver, "查看本日刷卡紀錄", wait_time=wait_time)
 
-    wait = WebDriverWait(driver, wait_time)
-    table_xpath = "//table[@id='checkinList']"
-    table = wait.until(EC.visibility_of_element_located((By.XPATH, table_xpath)))
-    rows = table.find_elements(By.TAG_NAME, "tr")
-    records = []
-    for row in rows:
-        cols = row.find_elements(By.TAG_NAME, "td")
-        if cols:
-            record = {
-                "date": cols[0].text,
-                "weekDay": cols[1].text,
-                "className": cols[2].text,
-                "time": cols[3].text,
-                "ip": cols[4].text,
-            }
-            records.append(record)
-    return records
+    try:
+        wait = WebDriverWait(driver, wait_time)
+        table_xpath = "//table[@id='checkinList']"
+        table = wait.until(EC.visibility_of_element_located((By.XPATH, table_xpath)))
+        rows = table.find_elements(By.TAG_NAME, "tr")
+        records = []
+        for row in rows:
+            cols = row.find_elements(By.TAG_NAME, "td")
+            if cols:
+                record = {
+                    "date": cols[0].text,
+                    "weekDay": cols[1].text,
+                    "className": cols[2].text,
+                    "time": cols[3].text,
+                    "ip": cols[4].text,
+                }
+                records.append(record)
+        return records
+    except TimeoutException as e:
+        logging.error("Failed to load swipe card record table: %s", e)
+        raise
 
 
-def send_line_notify(token, message):
-    """Sends a notification message via LINE Notify."""
+def send_line_notify(token: str, message: str) -> bool:
+    """Send notification message via LINE Notify"""
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/x-www-form-urlencoded",
     }
     data = {"message": message}
-    response = requests.post(
-        "https://notify-api.line.me/api/notify", headers=headers, data=data, timeout=10
-    )
-    if response.status_code != 200:
-        logging.error("Failed to send LINE Notify message: %s", response.text)
-    return response.status_code == 200
+    try:
+        response = requests.post(
+            "https://notify-api.line.me/api/notify",
+            headers=headers,
+            data=data,
+            timeout=10,
+        )
+        if response.status_code != 200:
+            logging.error("Failed to send LINE Notify message: %s", response.text)
+            return False
+        return True
+    except requests.RequestException as e:
+        logging.error("LINE Notify request failed: %s", e)
+        return False
 
 
-def format_records(records, sign_type):
-    """Formats a list of swipe card records into a string for display or messaging."""
+def format_records(records: List[Dict[str, str]], sign_type: str) -> str:
+    """Format swipe card record list to string for display or messaging"""
     if sign_type not in ["sign_in", "sign_out"]:
-        return "Invalid sign type."
+        return "Invalid sign-in type."
     if not records:
         return "No records found."
     record = records[0] if sign_type == "sign_in" else records[-1]
-    return f"Date: {record['date']}\nWeekDay: {record['weekDay']}\nClass: {record['className']}\nTime: {record['time']}\nIP: {record['ip']}\n"
+    return (
+        f"日期: {record['date']}\n"
+        f"星期: {record['weekDay']}\n"
+        f"班別: {record['className']}\n"
+        f"時間: {record['time']}\n"
+        f"IP: {record['ip']}\n"
+    )
 
 
-def perform_sign_in_out(driver, config, sign_type):
-    """Performs the sign-in or sign-out operation and sends a notification."""
+def perform_sign_in_out(
+    driver: webdriver.Chrome, config: Dict[str, Any], sign_type: str
+) -> None:
+    """Perform sign-in or sign-out operation and send notification"""
     button_text = "上班簽到" if sign_type == "sign_in" else "下班簽退"
     click_button(driver, button_text)
     records = view_swipe_card_records(driver)
@@ -150,56 +180,59 @@ def perform_sign_in_out(driver, config, sign_type):
     )
 
 
-def handle_sign_in_out(config):
-    """Handles the sign-in and sign-out process based on the current time and workday schedule."""
+def execute_sign_in_out(
+    sign_type: str, sign_time: datetime, config: Dict[str, Any]
+) -> None:
+    """Execute sign-in or sign-out operation"""
+    logging.info(f"開始執行{sign_type}操作")
+    driver = setup_driver()
+    try:
+        login(driver, config["psn_code"], config["password"])
+        perform_sign_in_out(driver, config, sign_type)
+    finally:
+        driver.quit()
+        logging.info("瀏覽器已關閉")
+
+
+def handle_sign_in_out(config: Dict[str, Any]) -> None:
+    """Handle sign-in and sign-out process based on current time and work schedule"""
     current_time = datetime.now()
     sign_in_hour = 8
 
-    # Calculate sign-in and sign-out times for default
-    default_sign_in_time = datetime(
-        current_time.year,
-        current_time.month,
-        current_time.day,
-        sign_in_hour,
-        config["sign_in_minute_start"],
+    def get_sign_times(sign_in_minute: int) -> Tuple[datetime, datetime]:
+        sign_in_time = datetime(
+            current_time.year,
+            current_time.month,
+            current_time.day,
+            sign_in_hour,
+            sign_in_minute,
+        )
+        sign_out_time = sign_in_time + timedelta(hours=9, minutes=5)
+        return sign_in_time, sign_out_time
+
+    default_sign_in_time, default_sign_out_time = get_sign_times(
+        config["sign_in_minute_start"]
     )
-    default_sign_out_time = default_sign_in_time + timedelta(hours=9, minutes=5)
 
-    print(f"上班時間: {default_sign_in_time}")
-    print(f"下班時間: {default_sign_out_time}")
+    logging.info(f"上班時間: {default_sign_in_time}")
+    logging.info(f"下班時間: {default_sign_out_time}")
 
-    # If the current time is before today's sign-in time, wait until sign-in time
+    def wait_until(target_time: datetime) -> None:
+        while datetime.now() < target_time:
+            time.sleep(60)
+
     if current_time < default_sign_in_time:
-        print("當前時間早於上班時間，等待中...")
-        while datetime.now() < default_sign_in_time:
-            time.sleep(60)
-        print("已到達上班時間，進行簽到...")
-        driver = setup_driver()
-        print("瀏覽器驅動初始化完成。")
-        login(driver, config["psn_code"], config["password"])
-        print("登入成功。")
-        perform_sign_in_out(driver, config, "sign_in")
-        print(f"簽到操作完成，實際簽到時間: {datetime.now()}")
-        driver.quit()
-        print("瀏覽器已關閉。")
+        logging.info("當前時間早於上班時間，等待中...")
+        wait_until(default_sign_in_time)
+        logging.info("已到達上班時間，進行簽到...")
+        execute_sign_in_out("sign_in", default_sign_in_time, config)
+        logging.info("等待簽退時間...")
+        wait_until(default_sign_out_time)
+        logging.info("已到達簽退時間，進行簽退...")
+        execute_sign_in_out("sign_out", default_sign_out_time, config)
 
-        # Wait until sign-out time
-        print("等待簽退時間...")
-        while datetime.now() < default_sign_out_time:
-            time.sleep(60)
-        print("已到達簽退時間，進行簽退...")
-        driver = setup_driver()
-        print("瀏覽器驅動初始化完成。")
-        login(driver, config["psn_code"], config["password"])
-        print("登入成功。")
-        perform_sign_in_out(driver, config, "sign_out")
-        print(f"簽退操作完成，實際簽退時間: {datetime.now()}")
-        driver.quit()
-        print("瀏覽器已關閉。")
-
-    # If the current time is during work hours, prompt for sign-in time and wait until sign-out
     elif default_sign_in_time <= current_time < default_sign_out_time:
-        print("當前時間在上班時間範圍內，等待輸入上班時間...")
+        logging.info("當前時間在上班時間範圍內，等待輸入上班時間...")
         while True:
             sign_in_minute_input = input("請輸入上班時間的分鐘數(格式:MM): ")
             try:
@@ -209,87 +242,56 @@ def handle_sign_in_out(config):
                     <= sign_in_minute
                     < config["sign_in_minute_end"]
                 ):
-                    print(
+                    logging.info(
                         "已輸入有效的上班時間，程式現在將進入等待狀態，直到簽退時間。"
                     )
                     break
                 else:
-                    print(
+                    logging.warning(
                         f"請輸入{config['sign_in_minute_start']}到{config['sign_in_minute_end'] - 1}之間的分鐘數"
                     )
             except ValueError:
-                print("分鐘數格式不正確，請重新輸入。")
+                logging.warning("分鐘數格式不正確，請重新輸入。")
 
-        sign_in_datetime = current_time.replace(
-            hour=sign_in_hour, minute=sign_in_minute, second=0, microsecond=0
-        )
-        sign_out_time = sign_in_datetime + timedelta(hours=9, minutes=5)
+        sign_in_time, sign_out_time = get_sign_times(sign_in_minute)
+        logging.info(f"今日上班時間: {sign_in_time}")
+        logging.info(f"今日下班時間: {sign_out_time}")
 
-        print(f"今日上班時間: {sign_in_datetime}")
-        print(f"今日下班時間: {sign_out_time}")
+        logging.info("等待簽退時間...")
+        wait_until(sign_out_time)
+        logging.info("已到達簽退時間，進行簽退...")
+        execute_sign_in_out("sign_out", sign_out_time, config)
 
-        print("等待簽退時間...")
-        while datetime.now() < sign_out_time:
-            time.sleep(60)
-        print("已到達簽退時間，進行簽退...")
-        driver = setup_driver()
-        print("瀏覽器驅動初始化完成。")
-        login(driver, config["psn_code"], config["password"])
-        print("登入成功。")
-        perform_sign_in_out(driver, config, "sign_out")
-        print(f"簽退操作完成，實際簽退時間: {datetime.now()}")
-        driver.quit()
-        print("瀏覽器已關閉。")
-
-    # Handle automatic sign-in and sign-out for future days
     while True:
         next_workday = current_time + timedelta(days=1)
-        while next_workday.weekday() in [5, 6] or is_holiday(next_workday.date()):
+        while next_workday.weekday() in [5, 6] or is_holiday(next_workday):
             next_workday += timedelta(days=1)
+        sign_in_minute = random.randint(
+            config["sign_in_minute_start"], config["sign_in_minute_end"] - 1
+        )
         sign_in_time = next_workday.replace(
-            hour=sign_in_hour,
-            minute=random.randint(
-                config["sign_in_minute_start"], config["sign_in_minute_end"] - 1
-            ),
-            second=0,
-            microsecond=0,
+            hour=sign_in_hour, minute=sign_in_minute, second=0, microsecond=0
         )
         sign_out_time = sign_in_time + timedelta(hours=9, minutes=5)
 
-        print(f"下一個工作日上班時間: {sign_in_time}")
-        print(f"下一個工作日下班時間: {sign_out_time}")
+        logging.info(f"下一個工作日上班時間: {sign_in_time}")
+        logging.info(f"下一個工作日下班時間: {sign_out_time}")
 
-        print("等待簽到時間...")
-        while datetime.now() < sign_in_time:
-            time.sleep(60)
-        print("已到達上班時間，進行簽到...")
-        driver = setup_driver()
-        print("瀏覽器驅動初始化完成。")
-        login(driver, config["psn_code"], config["password"])
-        print("登入成功。")
-        perform_sign_in_out(driver, config, "sign_in")
-        print(f"簽到操作完成，實際簽到時間: {datetime.now()}")
-        driver.quit()
-        print("瀏覽器已關閉。")
+        logging.info("等待簽到時間...")
+        wait_until(sign_in_time)
+        logging.info("已到達上班時間，進行簽到...")
+        execute_sign_in_out("sign_in", sign_in_time, config)
 
-        print("等待簽退時間...")
-        while datetime.now() < sign_out_time:
-            time.sleep(60)
-        print("已到達簽退時間，進行簽退...")
-        driver = setup_driver()
-        print("瀏覽器驅動初始化完成。")
-        login(driver, config["psn_code"], config["password"])
-        print("登入成功。")
-        perform_sign_in_out(driver, config, "sign_out")
-        print(f"簽退操作完成，實際簽退時間: {datetime.now()}")
-        driver.quit()
-        print("瀏覽器已關閉。")
+        logging.info("等待簽退時間...")
+        wait_until(sign_out_time)
+        logging.info("已到達簽退時間，進行簽退...")
+        execute_sign_in_out("sign_out", sign_out_time, config)
         current_time = datetime.now()
-        print("------------------------------")
+        logging.info("------------------------------")
 
 
-def main():
-    """Main function to read configuration and start the sign-in and sign-out process."""
+def main() -> None:
+    """Main function, read configuration and start sign-in and sign-out process"""
     try:
         with open(json_file_path, "r", encoding="utf-8") as file:
             config = json.load(file)
