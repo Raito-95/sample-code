@@ -53,7 +53,10 @@ def setup_driver() -> webdriver.Chrome:
     chrome_options.add_argument("--disable-gpu")
     try:
         driver = webdriver.Chrome(
-            service=Service(ChromeDriverManager().install()), options=chrome_options
+            service=Service(
+                ChromeDriverManager(driver_version="114.0.5735.90").install()
+            ),
+            options=chrome_options,
         )
     except Exception as e:
         logging.error("Failed to initialize browser driver: %s", e)
