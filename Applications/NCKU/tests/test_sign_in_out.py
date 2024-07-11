@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import sys
 import os
@@ -19,6 +19,7 @@ from AutomatedWorkClock import (
     perform_sign_in_out,
     handle_sign_in_out,
 )
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 
@@ -61,8 +62,13 @@ class TestSignInOut(unittest.TestCase):
     @patch("AutomatedWorkClock.webdriver.Chrome")
     @patch("AutomatedWorkClock.ChromeDriverManager.install")
     def test_setup_driver(self, mock_install, MockChrome):
-        driver = setup_driver()
+        mock_driver = MagicMock()
+        mock_driver.capabilities = {"chrome": {"chromedriverVersion": "126.0.6478.126"}}
+        MockChrome.return_value = mock_driver
+
+        driver, version = setup_driver()
         self.assertIsInstance(driver, MagicMock)
+        self.assertEqual(version, "126.0.6478.126")
 
     @patch("AutomatedWorkClock.WebDriverWait", autospec=True)
     def test_login(self, MockWebDriverWait):
@@ -140,7 +146,10 @@ class TestSignInOut(unittest.TestCase):
     @patch("AutomatedWorkClock.execute_sign_in_out")
     @patch("AutomatedWorkClock.setup_driver")
     @patch("AutomatedWorkClock.login")
-    def test_handle_sign_in_out(self, mock_login, mock_setup, mock_execute):
+    @patch("AutomatedWorkClock.datetime", autospec=True)
+    def test_handle_sign_in_out(
+        self, mock_datetime, mock_login, mock_setup, mock_execute
+    ):
         config = {
             "psn_code": "12345",
             "password": "password",
@@ -148,7 +157,30 @@ class TestSignInOut(unittest.TestCase):
             "sign_in_minute_start": 0,
             "sign_in_minute_end": 20,
         }
-        handle_sign_in_out(config)
+
+        base_time = datetime(2024, 7, 11, 7, 55)
+        mock_datetime.now.side_effect = [
+            base_time,
+            base_time + timedelta(minutes=5),  # Before sign-in time
+            base_time + timedelta(minutes=10),  # After sign-in time
+            base_time + timedelta(hours=8),  # Before sign-out time
+            base_time + timedelta(hours=9, minutes=5),  # After sign-out time
+            base_time
+            + timedelta(
+                days=1, hours=9, minutes=10
+            ),  # Next day after sign-in and sign-out
+        ] + [
+            base_time + timedelta(days=1, hours=9, minutes=10) + timedelta(seconds=i)
+            for i in range(20)
+        ]  # Extra times
+
+        mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+
+        with patch(
+            "AutomatedWorkClock.wait_until", lambda x: None
+        ):  # Mock wait_until to skip waiting
+            handle_sign_in_out(config)
+
         mock_setup.assert_called()
         mock_login.assert_called()
         mock_execute.assert_called()

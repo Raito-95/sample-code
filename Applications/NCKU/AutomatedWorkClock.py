@@ -46,22 +46,24 @@ def is_holiday(date: datetime) -> bool:
     return date in tw_holidays
 
 
-def setup_driver() -> webdriver.Chrome:
-    """Set up Chrome WebDriver in headless mode with GPU acceleration disabled"""
+def setup_driver() -> Tuple[webdriver.Chrome, str]:
+    """Set up Chrome WebDriver in headless mode with GPU acceleration disabled and return the driver and its version"""
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
     try:
         driver = webdriver.Chrome(
-            service=Service(
-                ChromeDriverManager().install()
-            ),
+            service=Service(ChromeDriverManager().install()),
             options=chrome_options,
         )
+        driver_version = driver.capabilities["chrome"]["chromedriverVersion"].split(
+            " "
+        )[0]
+        print(f"使用的 ChromeDriver 版本: {driver_version}")
     except Exception as e:
         logging.error("Failed to initialize browser driver: %s", e)
         raise
-    return driver
+    return driver, driver_version
 
 
 def login(driver: webdriver.Chrome, psn_code: str, password: str) -> None:
@@ -183,12 +185,10 @@ def perform_sign_in_out(
     )
 
 
-def execute_sign_in_out(
-    sign_type: str, sign_time: datetime, config: Dict[str, Any]
-) -> None:
+def execute_sign_in_out(sign_type: str, config: Dict[str, Any]) -> None:
     """Execute sign-in or sign-out operation"""
     logging.info(f"開始執行{sign_type}操作")
-    driver = setup_driver()
+    driver, driver_version = setup_driver()
     try:
         login(driver, config["psn_code"], config["password"])
         perform_sign_in_out(driver, config, sign_type)
@@ -228,11 +228,11 @@ def handle_sign_in_out(config: Dict[str, Any]) -> None:
         logging.info("當前時間早於上班時間，等待中...")
         wait_until(default_sign_in_time)
         logging.info("已到達上班時間，進行簽到...")
-        execute_sign_in_out("sign_in", default_sign_in_time, config)
+        execute_sign_in_out("sign_in", config)
         logging.info("等待簽退時間...")
         wait_until(default_sign_out_time)
         logging.info("已到達簽退時間，進行簽退...")
-        execute_sign_in_out("sign_out", default_sign_out_time, config)
+        execute_sign_in_out("sign_out", config)
 
     elif default_sign_in_time <= current_time < default_sign_out_time:
         logging.info("當前時間在上班時間範圍內，等待輸入上班時間...")
@@ -263,7 +263,7 @@ def handle_sign_in_out(config: Dict[str, Any]) -> None:
         logging.info("等待簽退時間...")
         wait_until(sign_out_time)
         logging.info("已到達簽退時間，進行簽退...")
-        execute_sign_in_out("sign_out", sign_out_time, config)
+        execute_sign_in_out("sign_out", config)
 
     while True:
         next_workday = current_time + timedelta(days=1)
@@ -283,12 +283,12 @@ def handle_sign_in_out(config: Dict[str, Any]) -> None:
         logging.info("等待簽到時間...")
         wait_until(sign_in_time)
         logging.info("已到達上班時間，進行簽到...")
-        execute_sign_in_out("sign_in", sign_in_time, config)
+        execute_sign_in_out("sign_in", config)
 
         logging.info("等待簽退時間...")
         wait_until(sign_out_time)
         logging.info("已到達簽退時間，進行簽退...")
-        execute_sign_in_out("sign_out", sign_out_time, config)
+        execute_sign_in_out("sign_out", config)
         current_time = datetime.now()
         logging.info("------------------------------")
 
