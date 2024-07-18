@@ -21,6 +21,7 @@ logging.basicConfig(
 )
 
 json_file_path = os.path.join(os.path.dirname(__file__), "credentials.json")
+driver_path = ChromeDriverManager().install()
 tw_holidays = holidays.Taiwan()
 
 
@@ -37,7 +38,7 @@ def validate_config(config: Dict[str, Any]) -> None:
         if key not in config:
             raise ValueError(f"Configuration missing '{key}'.")
 
-    if not (0 <= config["sign_in_minute_start"] < config["sign_in_minute_end"] <= 20):
+    if not (0 <= config["sign_in_minute_start"] < config["sign_in_minute_end"] <= 25):
         raise ValueError("Invalid sign-in minute range in configuration.")
 
 
@@ -46,19 +47,15 @@ def is_holiday(date: datetime) -> bool:
     return date in tw_holidays
 
 
-def setup_driver() -> Tuple[webdriver.Chrome, str]:
+def setup_driver(driver_path: str) -> Tuple[webdriver.Chrome, str]:
     """Set up Chrome WebDriver in headless mode with GPU acceleration disabled and return the driver and its version"""
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
     try:
-        driver = webdriver.Chrome(
-            service=Service(ChromeDriverManager().install()),
-            options=chrome_options,
-        )
-        driver_version = driver.capabilities["chrome"]["chromedriverVersion"].split(
-            " "
-        )[0]
+        service = Service(driver_path)
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        driver_version = driver.capabilities["browserVersion"]
         print(f"使用的 ChromeDriver 版本: {driver_version}")
     except Exception as e:
         logging.error("Failed to initialize browser driver: %s", e)
@@ -185,10 +182,12 @@ def perform_sign_in_out(
     )
 
 
-def execute_sign_in_out(sign_type: str, config: Dict[str, Any]) -> None:
+def execute_sign_in_out(
+    sign_type: str, config: Dict[str, Any], driver_path: str
+) -> None:
     """Execute sign-in or sign-out operation"""
     logging.info(f"開始執行{sign_type}操作")
-    driver, driver_version = setup_driver()
+    driver, driver_version = setup_driver(driver_path)
     try:
         login(driver, config["psn_code"], config["password"])
         perform_sign_in_out(driver, config, sign_type)
@@ -197,7 +196,7 @@ def execute_sign_in_out(sign_type: str, config: Dict[str, Any]) -> None:
         logging.info("瀏覽器已關閉")
 
 
-def handle_sign_in_out(config: Dict[str, Any]) -> None:
+def handle_sign_in_out(config: Dict[str, Any], driver_path: str) -> None:
     """Handle sign-in and sign-out process based on current time and work schedule"""
     current_time = datetime.now()
     sign_in_hour = 8
@@ -228,11 +227,11 @@ def handle_sign_in_out(config: Dict[str, Any]) -> None:
         logging.info("當前時間早於上班時間，等待中...")
         wait_until(default_sign_in_time)
         logging.info("已到達上班時間，進行簽到...")
-        execute_sign_in_out("sign_in", config)
+        execute_sign_in_out("sign_in", config, driver_path)
         logging.info("等待簽退時間...")
         wait_until(default_sign_out_time)
         logging.info("已到達簽退時間，進行簽退...")
-        execute_sign_in_out("sign_out", config)
+        execute_sign_in_out("sign_out", config, driver_path)
 
     elif default_sign_in_time <= current_time < default_sign_out_time:
         logging.info("當前時間在上班時間範圍內，等待輸入上班時間...")
@@ -263,7 +262,7 @@ def handle_sign_in_out(config: Dict[str, Any]) -> None:
         logging.info("等待簽退時間...")
         wait_until(sign_out_time)
         logging.info("已到達簽退時間，進行簽退...")
-        execute_sign_in_out("sign_out", config)
+        execute_sign_in_out("sign_out", config, driver_path)
 
     while True:
         next_workday = current_time + timedelta(days=1)
@@ -283,12 +282,12 @@ def handle_sign_in_out(config: Dict[str, Any]) -> None:
         logging.info("等待簽到時間...")
         wait_until(sign_in_time)
         logging.info("已到達上班時間，進行簽到...")
-        execute_sign_in_out("sign_in", config)
+        execute_sign_in_out("sign_in", config, driver_path)
 
         logging.info("等待簽退時間...")
         wait_until(sign_out_time)
         logging.info("已到達簽退時間，進行簽退...")
-        execute_sign_in_out("sign_out", config)
+        execute_sign_in_out("sign_out", config, driver_path)
         current_time = datetime.now()
         logging.info("------------------------------")
 
@@ -303,7 +302,7 @@ def main() -> None:
         logging.error("Error reading or validating configuration: %s", e)
         return
 
-    handle_sign_in_out(config)
+    handle_sign_in_out(config, driver_path)
 
 
 if __name__ == "__main__":

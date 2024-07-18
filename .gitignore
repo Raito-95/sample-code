@@ -9,6 +9,7 @@ __pycache__/
 *.jpg
 *.jpeg
 *.avi
+*.mp4
 
 # Environment files
 .env
@@ -18,8 +19,10 @@ __pycache__/
 exe
 build
 dist
+create
 
 *.spec
 
 _credentials.json
 *.bat
+chromedriver.exe
