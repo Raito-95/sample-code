@@ -2,6 +2,7 @@ asyncio
 GPUtil
 keyboard
 matplotlib
+moviepy
 numpy
 opencv-python
 Pillow
