@@ -15,8 +15,8 @@ __pycache__/
 .env
 
 # Directories
-/tool/
-exe
+Alignment
+tool
 build
 dist
 create
