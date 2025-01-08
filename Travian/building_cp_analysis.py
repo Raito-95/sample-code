@@ -1,7 +1,11 @@
 import pandas as pd
 from openpyxl import load_workbook
-from openpyxl.styles import Alignment
+from openpyxl.styles import Alignment, Font
 from pandas.io.excel import ExcelWriter
+from datetime import datetime
+import os
+import platform
+import subprocess
 
 buildings_data = {
     "村莊大樓": {
@@ -88,7 +92,6 @@ buildings_data = {
 
 # 組合建築物的資料
 combined_data = []
-
 for building, info in buildings_data.items():
     levels = info['等級']
     cp_values = info['CP值']
@@ -99,23 +102,49 @@ for building, info in buildings_data.items():
 df = pd.DataFrame(combined_data)
 df_sorted = df.sort_values(by='CP值', ascending=True)
 
+# 動態生成檔案名稱，包含日期和時間
+current_datetime = datetime.now().strftime('%Y%m%d_%H%M%S')
+filename = f'建築物文明點資源效益排序_{current_datetime}.xlsx'
+
 # 使用 pandas 的 ExcelWriter 與 openpyxl 寫入文件並格式化
-with pd.ExcelWriter('建築物文明點資源效益排序_v0.1.xlsx', engine='openpyxl') as writer:
-    df_sorted.to_excel(writer, index=False)
+with pd.ExcelWriter(filename, engine='openpyxl') as writer:
+    df_sorted.to_excel(writer, index=False, sheet_name='文明點效益排序')
     
     # 獲取工作簿和工作表
     workbook = writer.book
-    worksheet = writer.sheets['Sheet1']
+    worksheet = writer.sheets['文明點效益排序']
     
-    # 設置第一列的寬度和居中對齊
-    worksheet.column_dimensions['A'].width = 20
+    # 添加標題行格式
+    title_font = Font(bold=True, size=12)
+    for cell in worksheet[1]:
+        cell.font = title_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    # 凍結首行
+    worksheet.freeze_panes = 'A2'
+    
+    # 自動調整列寬（加大每列寬度計算）
+    for column_cells in worksheet.columns:
+        length = max(len(str(cell.value)) for cell in column_cells) * 1.5  # 擴大寬度比例
+        column_letter = column_cells[0].column_letter
+        worksheet.column_dimensions[column_letter].width = max(10, length)  # 設置最小寬度為10
+    
+    # 調整內容對齊方式
     center_alignment = Alignment(horizontal='center', vertical='center')
-    
     for row in worksheet.iter_rows(min_row=2, max_row=worksheet.max_row, min_col=1, max_col=worksheet.max_column):
-        building_name_cell = row[0]
-        level_cell = row[1]
-        
-        building_name_cell.alignment = center_alignment
-        level_cell.alignment = center_alignment
+        for cell in row:
+            cell.alignment = center_alignment
 
-print("已成功產生 v0.1，並已進行格式化。")
+print(f"已成功產生 {filename}，並已進行格式化。")
+
+# 自動開啟文件
+try:
+    if platform.system() == 'Windows':
+        os.startfile(filename)
+    elif platform.system() == 'Darwin':  # macOS
+        subprocess.call(['open', filename])
+    else:  # Linux and others
+        subprocess.call(['xdg-open', filename])
+except Exception as e:
+    print(f"自動開啟文件時發生錯誤：{e}")
+    

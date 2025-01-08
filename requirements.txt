@@ -1,21 +1,48 @@
+# Asynchronous Operations
 asyncio
+websockets
+
+# GPU/Hardware Management
 GPUtil
+psutil
+
+# Keyboard and Mouse Control
 keyboard
-matplotlib
-moviepy
+pyautogui
+pynput
+
+# Data Processing and Scientific Computing
 numpy
+matplotlib
+pandas
+
+# Excel and File Handling
+openpyxl
+
+# Audio/Multimedia Processing
+pyaudio
+wave
+moviepy
+
+# Image Processing
 opencv-python
 Pillow
-psutil
-pyaudio
-pyautogui
-PyQt5
-pynput
-python-dotenv
-pyserial
 pytesseract
+
+# GUI Development
+PyQt5
+
+# Network Requests and Web Interaction
 requests
+
+# Screen and Display
 screeninfo
+
+# Environment and Configuration Management
+python-dotenv
+
+# Serial Communication
+pyserial
+
+# Translation and Language Processing
 translate
-wave
-websockets
