@@ -14,10 +14,6 @@ pynput
 # Data Processing and Scientific Computing
 numpy
 matplotlib
-pandas
-
-# Excel and File Handling
-openpyxl
 
 # Audio/Multimedia Processing
 pyaudio
