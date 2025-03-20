@@ -23,6 +23,7 @@ create
 
 *.spec
 
+credentials.json
 _credentials.json
 *.bat
 chromedriver.exe
