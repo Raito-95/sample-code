@@ -9,11 +9,11 @@ import datetime
 load_dotenv()
 
 NOTION_API_KEY = os.getenv("NOTION_API_KEY")
-DATABASE_ID = os.getenv("DATABASE_ID")
+NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 GOOGLE_CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID")
 GOOGLE_CREDENTIALS_FILE = "credentials.json"
 
-if not NOTION_API_KEY or not DATABASE_ID or not GOOGLE_CALENDAR_ID:
+if not NOTION_API_KEY or not NOTION_DATABASE_ID or not GOOGLE_CALENDAR_ID:
     raise ValueError("環境變數未正確設置，請檢查 .env 檔案！")
 
 NOTION_HEADERS = {
@@ -24,7 +24,7 @@ NOTION_HEADERS = {
 
 def get_notion_events():
     """ 從 Notion 讀取事件 """
-    url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
+    url = f"https://api.notion.com/v1/databases/{NOTION_DATABASE_ID}/query"
     response = requests.post(url, headers=NOTION_HEADERS)
 
     if response.status_code != 200:
@@ -39,22 +39,22 @@ def get_notion_events():
 
         # 自動偵測標題欄位
         title_key = next(key for key in properties if properties[key]["type"] == "title")
-        title = properties[title_key]["title"][0]["text"]["content"] if properties[title_key]["title"] else "無標題"
+        title = properties.get(title_key, {}).get("title", [{}])[0].get("text", {}).get("content", "無標題")
 
         # 取得開始時間 & 結束時間
-        start_date = properties["Date"]["date"]["start"] if "Date" in properties and properties["Date"]["date"] else None
-        end_date = properties["Date"]["date"]["end"] if "Date" in properties and properties["Date"]["date"] else None
+        start_date = properties.get("Date", {}).get("date", {}).get("start")
+        end_date = properties.get("Date", {}).get("date", {}).get("end")
 
         # 取得 Status（如果有）
-        status = properties["Status"]["select"]["name"] if "Status" in properties and properties["Status"]["select"] else None
+        status = properties.get("Status", {}).get("select", {}).get("name", "")
 
         # 如果 Status 是 Done，就跳過同步
-        if status and status.lower() == "done":
+        if status.lower() == "done":
             print(f"跳過已完成事件: {title}")
             continue
 
         # 取得 Notes（如果有）
-        notes = properties["Notes"]["rich_text"][0]["text"]["content"] if "Notes" in properties and properties["Notes"]["rich_text"] else ""
+        notes = properties.get("Notes", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
 
         # 判斷是否為全天事件
         is_all_day = "T" not in start_date if start_date else True
