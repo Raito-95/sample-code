@@ -3,354 +3,258 @@ import sys
 import psutil
 import GPUtil
 from PyQt5.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
-    QLabel,
-    QProgressBar,
-    QDesktopWidget,
-    QPushButton,
-    QStyle,
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QDesktopWidget, QMenu
 )
-from PyQt5.QtGui import QMouseEvent
+from PyQt5.QtGui import QMouseEvent, QPainter, QPen, QColor, QPainterPath
 from PyQt5.QtCore import QTimer, Qt, QPoint
 
 
+class LineGraphWidget(QWidget):
+    def __init__(self, parent=None, line_color=QColor(5, 184, 204), dynamic_max=False):
+        super().__init__(parent)
+        self.usage_data = []
+        self.line_color = line_color
+        self.dynamic_max = dynamic_max
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        w, h = self.width(), self.height()
+        painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 20))
+
+        if not self.usage_data:
+            return
+
+        max_value = max(self.usage_data) if self.dynamic_max else 100
+
+        def scaled_height(value):
+            return h - (value * h / max_value)
+
+        path = QPainterPath()
+        step = w / max(len(self.usage_data) - 1, 1)
+        path.moveTo(0, scaled_height(self.usage_data[0]))
+        for i in range(1, len(self.usage_data)):
+            path.lineTo(int(i * step), scaled_height(self.usage_data[i]))
+
+        fill_path = QPainterPath(path)
+        fill_path.lineTo(w, h)
+        fill_path.lineTo(0, h)
+        fill_path.closeSubpath()
+
+        fill_color = QColor(self.line_color)
+        fill_color.setAlpha(25)
+        painter.fillPath(fill_path, fill_color)
+
+        line_color = QColor(self.line_color)
+        line_color.setAlpha(180)
+        painter.setPen(QPen(line_color, 2))
+        painter.drawPath(path)
+
+    def update_usage(self, usage):
+        self.usage_data.append(usage)
+        if len(self.usage_data) > 100:
+            self.usage_data.pop(0)
+        self.update()
+
+
 class SystemMonitor(QMainWindow):
-    def __init__(self, app):
+    def __init__(self):
         super().__init__()
-        self.label_network = None
-        self.label_cpu = None
-        self.label_gpu = None
-        self.label_mem = None
-        self.label_disk = []
-
-        self.progress_bar_network = None
-        self.progress_bar_cpu = None
-        self.progress_bar_gpu = None
-        self.progress_bar_mem = None
-        self.progress_bar_disk = []
-        self.progress_bar_upload = None
-        self.progress_bar_download = None
-
-        network_usage = psutil.net_io_counters()
-        self.last_upload = network_usage.bytes_sent / 1024
-        self.last_download = network_usage.bytes_recv / 1024
-        self.max_upload_rate = 1
-        self.max_download_rate = 1
-
-        self.app = app
-        self.is_movable = True
-        self.old_pos = None
-        self.init_ui()
-        self.init_widgets()
-        self.init_timers()
-        self.set_geometry_to_bottom()
-
-    def init_ui(self):
         self.setWindowTitle("System Monitor")
         self.setGeometry(0, 0, 220, 300)
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setStyleSheet("background-color: rgba(0, 0, 0, 150);")
+        self.setStyleSheet("background-color: rgba(0, 0, 0, 80);")
 
-        self.pin_button = QPushButton(self)
-        self.pin_button.setCheckable(True)
-        self.pin_button.setChecked(True)
-        style = self.style() if self.style() else QApplication.style()
-        self.pin_button.setIcon(style.standardIcon(QStyle.SP_DialogApplyButton))
-        self.pin_button.setStyleSheet("background-color: green;")
-        self.pin_button.clicked.connect(self.toggle_movable)
-        self.pin_button.setGeometry(190, 10, 20, 20)
+        self.is_movable = True
+        self.old_pos = None
+        self.disk_labels = []
+        self.disk_graphs = []
+
+        self.setup_ui()
+        self.setup_timers()
+        self.set_geometry_to_bottom()
+
+    def setup_ui(self):
+        self.central_widget = QWidget(self)
+        self.setCentralWidget(self.central_widget)
+        self.layout = QVBoxLayout(self.central_widget)
+        self.layout.setContentsMargins(10, 10, 10, 10)
+
+        # CPU
+        self.label_cpu = QLabel("CPU: --%", self)
+        self.label_cpu.setStyleSheet("color: white; background-color: transparent;")
+        self.layout.addWidget(self.label_cpu)
+        self.cpu_graph = LineGraphWidget(self.central_widget, QColor(255, 128, 0))
+        self.layout.addWidget(self.cpu_graph)
+
+        # Memory
+        self.label_mem = QLabel("Memory: --%", self)
+        self.label_mem.setStyleSheet("color: white; background-color: transparent;")
+        self.layout.addWidget(self.label_mem)
+        self.mem_graph = LineGraphWidget(self.central_widget, QColor(0, 200, 0))
+        self.layout.addWidget(self.mem_graph)
+
+        # Network
+        self.label_net = QLabel("Net: ↑ 0 KB/s ↓ 0 KB/s", self)
+        self.label_net.setStyleSheet("color: white; background-color: transparent;")
+        self.layout.addWidget(self.label_net)
+        self.upload_graph = LineGraphWidget(self.central_widget, QColor(255, 50, 50), True)
+        self.download_graph = LineGraphWidget(self.central_widget, QColor(150, 50, 200), True)
+        self.layout.addWidget(self.upload_graph)
+        self.layout.addWidget(self.download_graph)
+
+        # Disk
+        disk_colors = [QColor(180 - i*30, 180 - i*30, 180 - i*30) for i in range(10)]
+        for i, partition in enumerate(psutil.disk_partitions()):
+            if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
+                label = QLabel(f"Disk {i+1}: --%", self)
+                label.setStyleSheet("color: white; background-color: transparent;")
+                self.layout.addWidget(label)
+                graph = LineGraphWidget(self.central_widget, disk_colors[i % len(disk_colors)])
+                self.layout.addWidget(graph)
+                self.disk_labels.append(label)
+                self.disk_graphs.append(graph)
+
+        # GPU
+        self.label_gpu = QLabel("GPU: --%", self)
+        self.label_gpu.setStyleSheet("color: white; background-color: transparent;")
+        self.layout.addWidget(self.label_gpu)
+        self.gpu_graph = LineGraphWidget(self.central_widget, QColor(0, 170, 255))
+        self.layout.addWidget(self.gpu_graph)
 
     def toggle_movable(self):
         self.is_movable = not self.is_movable
-        style = self.style() if self.style() else QApplication.style()
-        if self.is_movable:
-            self.pin_button.setIcon(style.standardIcon(QStyle.SP_DialogApplyButton))
-            self.pin_button.setStyleSheet("background-color: green;")
-        else:
-            self.pin_button.setIcon(style.standardIcon(QStyle.SP_DialogCancelButton))
-            self.pin_button.setStyleSheet("background-color: red;")
+
+    def contextMenuEvent(self, event):
+        menu = QMenu(self)
+
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: rgba(30, 30, 30, 220);
+                color: white;
+                border: 1px solid gray;
+            }
+            QMenu::item:selected {
+                background-color: rgba(80, 80, 80, 180);
+            }
+        """)
+
+        pin_action = menu.addAction("Unpin window" if not self.is_movable else "Pin window")
+        exit_action = menu.addAction("Exit")
+
+        selected_action = menu.exec_(self.mapToGlobal(event.pos()))
+
+        if selected_action == pin_action:
+            self.toggle_movable()
+        elif selected_action == exit_action:
+            self.close()
 
     def mousePressEvent(self, event: QMouseEvent):
         if self.is_movable and event.button() == Qt.LeftButton:
             self.old_pos = event.globalPos()
 
     def mouseMoveEvent(self, event: QMouseEvent):
-        if (
-            self.is_movable
-            and self.old_pos is not None
-            and event.buttons() == Qt.LeftButton
-        ):
+        if self.is_movable and self.old_pos and event.buttons() == Qt.LeftButton:
             delta = QPoint(event.globalPos() - self.old_pos)
             self.move(self.x() + delta.x(), self.y() + delta.y())
             self.old_pos = event.globalPos()
 
-    def init_widgets(self):
-        self.central_widget = QWidget(self)
-        self.setCentralWidget(self.central_widget)
-        self.layout = QVBoxLayout(self.central_widget)
-        self.layout.setContentsMargins(10, 40, 10, 10)
-
-        self.init_network_widget()
-        self.init_cpu_widget()
-        self.init_gpu_widget()
-        self.init_memory_widget()
-        self.init_disk_widgets()
-        self.pin_button.raise_()
-
-    def init_timers(self):
-        self.network_timer = QTimer(self)
-        self.network_timer.timeout.connect(self.update_network_info)
-        self.network_timer.start(1000)
-
+    def setup_timers(self):
         self.cpu_timer = QTimer(self)
-        self.cpu_timer.timeout.connect(self.update_cpu_info)
-        self.cpu_timer.start(3000)
+        self.cpu_timer.timeout.connect(self.update_cpu)
+        self.cpu_timer.start(1000)
+
+        self.mem_timer = QTimer(self)
+        self.mem_timer.timeout.connect(self.update_mem)
+        self.mem_timer.start(5000)
+
+        self.net_timer = QTimer(self)
+        self.net_timer.timeout.connect(self.update_net)
+        self.net_timer.start(1000)
+
+        net = psutil.net_io_counters()
+        self.last_upload = net.bytes_sent / 1024
+        self.last_download = net.bytes_recv / 1024
 
         self.gpu_timer = QTimer(self)
-        self.gpu_timer.timeout.connect(self.update_gpu_info)
-        self.gpu_timer.start(4000)
-
-        self.memory_timer = QTimer(self)
-        self.memory_timer.timeout.connect(self.update_memory_info)
-        self.memory_timer.start(5000)
+        self.gpu_timer.timeout.connect(self.update_gpu)
+        self.gpu_timer.start(5000)
 
         self.disk_timer = QTimer(self)
-        self.disk_timer.timeout.connect(self.update_disk_info)
+        self.disk_timer.timeout.connect(self.update_disks)
         self.disk_timer.start(10000)
 
-    def init_network_widget(self):
-        self.label_network = self.create_label()
-        self.layout.addWidget(self.label_network)
+    def update_cpu(self):
+        cpu = psutil.cpu_percent()
+        self.label_cpu.setText(f"CPU: {cpu:.1f}%")
+        self.cpu_graph.update_usage(cpu)
 
-        self.progress_bar_upload = QProgressBar(self.central_widget)
-        self.progress_bar_download = QProgressBar(self.central_widget)
+    def update_mem(self):
+        mem = psutil.virtual_memory()
+        usage = mem.percent
+        used = mem.used / 1024**3
+        total = mem.total / 1024**3
+        self.label_mem.setText(f"Mem: {usage:.1f}% - {used:.1f}GB / {total:.1f}GB")
+        self.mem_graph.update_usage(usage)
 
-        self.progress_bar_upload.setFormat("")
-        self.progress_bar_upload.setStyleSheet(
-            """
-            QProgressBar {
-                border: 1px solid gray;
-                border-radius: 3px;
-                background-color: transparent;
-                height: 10px;
-            }
+    def update_net(self):
+        net = psutil.net_io_counters()
+        up = net.bytes_sent / 1024
+        down = net.bytes_recv / 1024
+        upload = up - self.last_upload
+        download = down - self.last_download
+        self.last_upload = up
+        self.last_download = down
 
-            QProgressBar::chunk {
-                background-color: rgba(255, 120, 50, 255);
-                margin: 0px;
-            }
-        """
-        )
+        up_unit = "KB/s" if upload < 1024 else "MB/s"
+        down_unit = "KB/s" if download < 1024 else "MB/s"
+        if upload >= 1024:
+            upload /= 1024
+        if download >= 1024:
+            download /= 1024
 
-        self.progress_bar_download.setFormat("")
-        self.progress_bar_download.setStyleSheet(
-            """
-            QProgressBar {
-                border: 1px solid gray;
-                border-radius: 3px;
-                background-color: transparent;
-                height: 10px;
-            }
+        self.label_net.setText(f"Net: ↑ {upload:.2f} {up_unit} ↓ {download:.2f} {down_unit}")
+        self.upload_graph.update_usage(upload)
+        self.download_graph.update_usage(download)
 
-            QProgressBar::chunk {
-                background-color: rgba(150, 50, 200, 255);
-                margin: 0px;
-            }
-        """
-        )
-
-        self.layout.addWidget(self.progress_bar_upload)
-        self.layout.addWidget(self.progress_bar_download)
-
-    def init_cpu_widget(self):
-        self.label_cpu, self.progress_bar_cpu = self.create_label_progress_bar()
-        self.layout.addWidget(self.label_cpu)
-        self.layout.addWidget(self.progress_bar_cpu)
-
-    def init_gpu_widget(self):
-        self.label_gpu, self.progress_bar_gpu = self.create_label_progress_bar()
-        self.layout.addWidget(self.label_gpu)
-        self.layout.addWidget(self.progress_bar_gpu)
-
-    def init_memory_widget(self):
-        self.label_mem, self.progress_bar_mem = self.create_label_progress_bar()
-        self.layout.addWidget(self.label_mem)
-        self.layout.addWidget(self.progress_bar_mem)
-
-    def init_disk_widgets(self):
-        for label in self.label_disk:
-            if label is not None:
-                self.layout.removeWidget(label)
-                label.deleteLater()
-        for bar in self.progress_bar_disk:
-            if bar is not None:
-                self.layout.removeWidget(bar)
-                bar.deleteLater()
-
-        self.label_disk.clear()
-        self.progress_bar_disk.clear()
-
-        accessible_partitions = [
-            p
-            for p in psutil.disk_partitions()
-            if os.path.exists(p.mountpoint) and os.access(p.mountpoint, os.R_OK)
-        ]
-        for _ in accessible_partitions:
-            label, progress_bar = self.create_label_progress_bar()
-            self.label_disk.append(label)
-            self.progress_bar_disk.append(progress_bar)
-            self.layout.addWidget(label)
-            self.layout.addWidget(progress_bar)
-
-    def create_label_progress_bar(self):
-        label = self.create_label()
-        progress_bar = QProgressBar(self.central_widget)
-        progress_bar.setRange(0, 100)
-        progress_bar.setFormat("")
-        progress_bar.setStyleSheet(
-            """
-            QProgressBar {
-                border: 1px solid gray;
-                border-radius: 3px;
-                background-color: transparent;
-            }
-
-            QProgressBar::chunk {
-                background-color: #05B8CC;
-                margin: 0px;
-            }
-        """
-        )
-        return label, progress_bar
-
-    def create_label(self):
-        label = QLabel(self.central_widget)
-        label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        label.setStyleSheet("color: white; background-color: transparent;")
-        return label
-
-    def update_network_info(self):
-        try:
-            network = psutil.net_io_counters()
-            upload = (network.bytes_sent / 1024) - self.last_upload
-            download = (network.bytes_recv / 1024) - self.last_download
-
-            self.last_upload = network.bytes_sent / 1024
-            self.last_download = network.bytes_recv / 1024
-
-            self.max_upload_rate = max(self.max_upload_rate, upload)
-            self.max_download_rate = max(self.max_download_rate, download)
-
-            upload_percentage = (
-                int(upload / self.max_upload_rate * 100)
-                if self.max_upload_rate > 0
-                else 0
-            )
-            download_percentage = (
-                int(download / self.max_download_rate * 100)
-                if self.max_download_rate > 0
-                else 0
-            )
-
-            if upload > 1024:
-                upload /= 1024
-                upload_unit = "MB/s"
-            else:
-                upload_unit = "KB/s"
-
-            if download > 1024:
-                download /= 1024
-                download_unit = "MB/s"
-            else:
-                download_unit = "KB/s"
-
-            if self.label_network is not None:
-                self.label_network.setText(
-                    f"Net: ↑ {upload:.2f} {upload_unit} ↓ {download:.2f} {download_unit}"
+    def update_disks(self):
+        for i, partition in enumerate(psutil.disk_partitions()):
+            if i >= len(self.disk_graphs):
+                break
+            if os.path.exists(partition.mountpoint) and os.access(partition.mountpoint, os.R_OK):
+                usage = psutil.disk_usage(partition.mountpoint)
+                percent = usage.percent
+                used = usage.used / 1024**3
+                total = usage.total / 1024**3
+                self.disk_labels[i].setText(
+                    f"Disk {i+1}: {percent:.1f}% - {used:.1f}GB / {total:.1f}GB"
                 )
-            if self.progress_bar_upload is not None:
-                self.progress_bar_upload.setValue(upload_percentage)
-            if self.progress_bar_download is not None:
-                self.progress_bar_download.setValue(download_percentage)
-        except Exception as e:
-            if self.label_network is not None:
-                self.label_network.setText("Network monitoring error")
-            print(f"Error monitoring network: {e}")
+                self.disk_graphs[i].update_usage(percent)
 
-    def update_cpu_info(self):
+    def update_gpu(self):
         try:
-            cpu_usage = psutil.cpu_percent()
-            if self.label_cpu is not None:
-                self.label_cpu.setText(f"CPU: {cpu_usage:.1f}%")
-            if self.progress_bar_cpu is not None:
-                self.progress_bar_cpu.setValue(int(cpu_usage))
-        except Exception as e:
-            if self.label_cpu is not None:
-                self.label_cpu.setText("CPU monitoring error")
-            print(f"Error monitoring CPU: {e}")
+            gpus = GPUtil.getGPUs()
+            if gpus:
+                gpu = gpus[0]
+                usage = gpu.load * 100
+                temp = gpu.temperature
+                name = gpu.name
+                vram_used = gpu.memoryUsed
+                vram_total = gpu.memoryTotal
 
-    def update_gpu_info(self):
-        try:
-            gpu_info = GPUtil.getGPUs()[0] if GPUtil.getGPUs() else None
-            if gpu_info:
-                gpu_usage = gpu_info.load * 100
-                gpu_temp = gpu_info.temperature
-                if self.label_gpu is not None:
-                    self.label_gpu.setText(
-                        f"GPU: {gpu_usage:.1f}% - Temp: {gpu_temp}°C"
-                    )
-                if self.progress_bar_gpu is not None:
-                    self.progress_bar_gpu.setValue(int(gpu_usage))
-            else:
-                if self.label_gpu is not None:
-                    self.label_gpu.setText("No GPU detected")
-        except Exception as e:
-            if self.label_gpu is not None:
-                self.label_gpu.setText("GPU monitoring error")
-            print(f"Error monitoring GPU: {e}")
-
-    def update_memory_info(self):
-        try:
-            mem = psutil.virtual_memory()
-            mem_usage = mem.percent
-            mem_used_gb = mem.used / 1024 / 1024 / 1024
-            mem_total_gb = mem.total / 1024 / 1024 / 1024
-            if self.label_mem is not None:
-                self.label_mem.setText(
-                    f"Mem: {mem_usage:.1f}% - {mem_used_gb:.1f}GB / {mem_total_gb:.1f}GB"
+                self.label_gpu.setText(
+                    f"{name}\nGPU: {usage:.1f}% | Temp: {temp}°C\n"
+                    f"VRAM: {vram_used:.1f}MB / {vram_total:.1f}MB"
                 )
-            if self.progress_bar_mem is not None:
-                self.progress_bar_mem.setValue(int(mem_usage))
+                self.gpu_graph.update_usage(usage)
+            else:
+                self.label_gpu.setText("No GPU detected")
+                self.gpu_graph.update_usage(0)
         except Exception as e:
-            if self.label_mem is not None:
-                self.label_mem.setText("Memory monitoring error")
-            print(f"Error monitoring memory: {e}")
-
-    def update_disk_info(self):
-        accessible_partitions = [
-            p
-            for p in psutil.disk_partitions()
-            if os.path.exists(p.mountpoint) and os.access(p.mountpoint, os.R_OK)
-        ]
-
-        try:
-            for index, partition in enumerate(accessible_partitions):
-                disk_usage = psutil.disk_usage(partition.mountpoint)
-                disk_usage_percent = disk_usage.percent
-                disk_total_gb = disk_usage.total / (1024**3)
-                disk_used_gb = disk_usage.used / (1024**3)
-                if self.label_disk[index] is not None:
-                    self.label_disk[index].setText(
-                        f"Disk {index + 1}: {disk_usage_percent:.1f}% - {disk_used_gb:.1f}GB / {disk_total_gb:.1f}GB"
-                    )
-                if self.progress_bar_disk[index] is not None:
-                    self.progress_bar_disk[index].setValue(int(disk_usage_percent))
-        except Exception as e:
-            print(f"Error monitoring disk: {e}")
+            self.label_gpu.setText("GPU error")
+            self.gpu_graph.update_usage(0)
+            print(f"[GPU] Error: {e}")
 
     def set_geometry_to_bottom(self):
         desktop = QDesktopWidget()
@@ -359,14 +263,14 @@ class SystemMonitor(QMainWindow):
             screen.width() - self.width(),
             screen.height() - self.height(),
             self.width(),
-            self.height(),
+            self.height()
         )
 
 
 def main():
     app = QApplication(sys.argv)
-    monitor = SystemMonitor(app)
-    monitor.show()
+    window = SystemMonitor()
+    window.show()
     sys.exit(app.exec_())
 
 

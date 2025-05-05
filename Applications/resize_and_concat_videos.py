@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
 import os
-from moviepy.editor import VideoFileClip, concatenate_videoclips, CompositeVideoClip
+import time
+from moviepy.editor import VideoFileClip, CompositeVideoClip
 from moviepy.video.fx.resize import resize
 
 
 def resize_and_pad(video, target_size=(640, 640), bg_color=(0, 0, 0)):
-    # Determine if resizing is needed
     if video.size[0] > target_size[0] or video.size[1] > target_size[1]:
-        # Resize video, keeping aspect ratio
         if video.size[0] / target_size[0] > video.size[1] / target_size[1]:
             video_resized = resize(video, width=target_size[0])
         else:
@@ -15,50 +13,56 @@ def resize_and_pad(video, target_size=(640, 640), bg_color=(0, 0, 0)):
     else:
         video_resized = video
 
-    # Create a black background and overlay the resized video onto it
-    video_padded = CompositeVideoClip(
-        [video_resized.set_position(("center", "center"))], size=target_size
+    return CompositeVideoClip(
+        [video_resized.set_position(("center", "center"))],
+        size=target_size
     ).on_color(color=bg_color, col_opacity=1)
 
-    return video_padded
+
+def get_video_files_from_current_dir(valid_exts={".mp4", ".avi", ".wmv"}):
+    return [
+        f for f in os.listdir(".")
+        if os.path.isfile(f) and os.path.splitext(f)[1].lower() in valid_exts
+    ]
 
 
-def process_videos(
-    video_files,
+def generate_output_filename(base_name, extension):
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    return f"{base_name}_{timestamp}{extension}"
+
+
+def process_videos_in_current_dir(
     target_size=(640, 640),
-    output_file="output.avi",
+    output_dir="processed_videos",
     fps=15,
     bg_color=(0, 0, 0),
 ):
-    video_clips = []
-    for video_file in video_files:
-        if not os.path.exists(video_file):
-            print(f"Error: File {video_file} does not exist.")
-            continue
-        try:
-            video_clip = VideoFileClip(video_file)
-            video_clips.append(resize_and_pad(video_clip, target_size, bg_color))
-        except Exception as e:
-            print(f"Error processing file {video_file}: {e}")
-            continue
+    os.makedirs(output_dir, exist_ok=True)
+    video_files = get_video_files_from_current_dir()
 
-    if not video_clips:
-        print("No valid video files to process.")
+    if not video_files:
+        print("No video files found in the current directory.")
         return
 
-    final_video = concatenate_videoclips(video_clips)
+    for video_file in video_files:
+        try:
+            clip = VideoFileClip(video_file)
+            processed_clip = resize_and_pad(clip, target_size, bg_color)
 
-    final_video.write_videofile(output_file, codec="libx264", fps=fps)
+            base_name, ext = os.path.splitext(os.path.basename(video_file))
+            output_filename = generate_output_filename(base_name, ext)
+            output_path = os.path.join(output_dir, output_filename)
 
-    print(f"Video has been successfully created and saved as {output_file}")
+            processed_clip.write_videofile(output_path, codec="libx264", fps=fps)
+            print(f"Saved processed video: {output_path}")
+        except Exception as e:
+            print(f"Error processing {video_file}: {e}")
 
 
-# Example usage
-video_files = ["test.avi", "test1.avi"]  # Add more video files as needed
-process_videos(
-    video_files,
-    target_size=(450, 450),
-    output_file="output.mp4",
+# Run directly
+process_videos_in_current_dir(
+    target_size=(640, 640),
+    output_dir="processed_videos",
     fps=15,
     bg_color=(0, 0, 0),
 )

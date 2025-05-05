@@ -2,36 +2,46 @@ import asyncio
 import websockets
 import cv2
 import logging
-import base64
 
 logging.basicConfig(level=logging.INFO)
 
 
 async def capture_and_stream(websocket, path):
     cap = cv2.VideoCapture(0)
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            logging.error("Failed to capture frame")
-            break
+    if not cap.isOpened():
+        logging.error("Cannot access camera")
+        return
 
-        _, buffer = cv2.imencode(".jpeg", frame)
-        base64_str = base64.b64encode(buffer).decode("utf-8")
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                logging.error("Failed to capture frame")
+                break
 
-        try:
-            await websocket.send(base64_str)
-            logging.info("Frame sent to client")
-        except Exception as e:
-            logging.error("Failed to send frame: %s", e)
-            break
+            success, buffer = cv2.imencode(".jpg", frame)
+            if not success:
+                logging.error("Failed to encode frame")
+                continue
 
-    cap.release()
+            try:
+                await websocket.send(buffer.tobytes())
+            except websockets.exceptions.ConnectionClosed:
+                logging.info("Client disconnected")
+                break
+
+            await asyncio.sleep(1 / 30)
+    finally:
+        cap.release()
 
 
 async def serve():
-    async with websockets.serve(capture_and_stream, "localhost", 8765):
-        logging.info("WebSocket server started")
+    async with websockets.serve(
+        capture_and_stream, "localhost", 8765, max_size=None
+    ):
+        logging.info("WebSocket server started at ws://localhost:8765")
         await asyncio.Future()
 
 
-asyncio.run(serve())
+if __name__ == "__main__":
+    asyncio.run(serve())

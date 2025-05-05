@@ -1,4 +1,0 @@
-holidays
-requests
-selenium
-webdriver-manager

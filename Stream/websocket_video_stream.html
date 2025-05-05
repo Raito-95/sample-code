@@ -1,53 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WebSocket Image Stream</title>
-    <style>
-      body,
-      html {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Binary WebSocket Stream</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #111;
+    }
+    img {
+      width: 100%;
+      max-width: 640px;
+      height: auto;
+      border: 4px solid #fff;
+    }
+  </style>
+</head>
+<body>
+  <img id="camera-stream" alt="Streaming..." />
+  <script>
+    const socket = new WebSocket("ws://localhost:8765");
+    socket.binaryType = "arraybuffer";
+
+    const imageElement = document.getElementById("camera-stream");
+
+    socket.onmessage = (event) => {
+      const arrayBuffer = event.data;
+      const blob = new Blob([arrayBuffer], { type: "image/jpeg" });
+
+      const blobURL = URL.createObjectURL(blob);
+      if (imageElement.src) {
+        URL.revokeObjectURL(imageElement.src);
       }
-      img {
-        width: 100%;
-        max-width: 640px;
-        height: auto;
-      }
-    </style>
-  </head>
-  <body>
-    <img id="camera-stream" />
+      imageElement.src = blobURL;
+    };
 
-    <script>
-      const websocket = new WebSocket("ws://localhost:8765");
-      const imageElement = document.getElementById("camera-stream");
-
-      websocket.onmessage = function (event) {
-        // Decode the Base64 encoded image data
-        const base64Data = event.data;
-        const blob = base64ToBlob(base64Data, "image/jpeg");
-
-        // Create a URL for the Blob object
-        const blobURL = URL.createObjectURL(blob);
-
-        // Update the image element's source to the new Blob URL
-        imageElement.src = blobURL;
-      };
-
-      // Convert a Base64 encoded string to a Blob object
-      function base64ToBlob(base64Data, contentType) {
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        return new Blob([byteArray], { type: contentType });
-      }
-    </script>
-  </body>
+    socket.onopen = () => console.log("WebSocket connected");
+    socket.onclose = () => console.log("WebSocket disconnected");
+    socket.onerror = (e) => console.error("WebSocket error", e);
+  </script>
+</body>
 </html>

@@ -3,6 +3,7 @@ from PIL import ImageGrab
 import numpy as np
 import time
 import keyboard
+import datetime
 
 
 def capture_screen_frame():
@@ -18,14 +19,20 @@ def initialize_video_writer(output_filename, frame_size, frame_rate=30, codec="X
     return cv2.VideoWriter(output_filename, fourcc, frame_rate, frame_size)
 
 
+def generate_timestamp_filename(prefix="screen_capture", ext=".avi"):
+    """Generate a timestamped filename."""
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    return f"{prefix}_{timestamp}{ext}"
+
+
 def main():
     try:
-        # Define output video parameters
-        output_filename = "screen_capture.avi"
+        # Define parameters
         frame_rate = 30
         delay = 1 / frame_rate
+        output_filename = generate_timestamp_filename()
 
-        # Capture an initial frame to get screen dimensions
+        # Get screen size from an initial frame
         initial_frame = capture_screen_frame()
         height, width, _ = initial_frame.shape
         frame_size = (width, height)
@@ -33,7 +40,10 @@ def main():
         # Initialize video writer
         video_writer = initialize_video_writer(output_filename, frame_size, frame_rate)
 
-        print("Press 'p' to start/pause/resume recording. Press 'Ctrl+C' to stop.")
+        print("Screen Recorder Started")
+        print("Press 'P' to start/pause/resume recording")
+        print("Press Ctrl+C to stop and save the video")
+        print("--------------------------------------------------")
 
         is_recording = False
 
@@ -42,30 +52,26 @@ def main():
 
             if keyboard.is_pressed("p"):
                 is_recording = not is_recording
-                if is_recording:
-                    print("Started recording.")
-                else:
-                    print("Paused recording.")
-                time.sleep(0.5)
+                print("Recording..." if is_recording else "⏸ Paused")
+                time.sleep(0.5)  # Prevent key repeat
 
             if is_recording:
                 frame = capture_screen_frame()
                 video_writer.write(frame)
 
             elapsed_time = time.time() - start_time
-            sleep_time = max(0, delay - elapsed_time)
-            time.sleep(sleep_time)
+            time.sleep(max(0, delay - elapsed_time))
 
     except KeyboardInterrupt:
-        print("Screen capture stopped by user.")
+        print("\nRecording stopped by user.")
 
     except Exception as e:
         print(f"An error occurred: {e}")
 
     finally:
-        if "video_writer" in locals():
+        if 'video_writer' in locals():
             video_writer.release()
-        print(f"Video saved as {output_filename}")
+        print(f"Video saved as: {output_filename}")
 
 
 if __name__ == "__main__":

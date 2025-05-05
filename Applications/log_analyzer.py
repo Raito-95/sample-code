@@ -1,6 +1,7 @@
 import re
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
 def extract_diff_values(file_path):
     pattern = re.compile(r'diff: ch(\d) = (-?\d+)')
@@ -18,13 +19,20 @@ def extract_diff_values(file_path):
                     index_data[f'ch{ch}'].append(index_counter)
                 index_counter += 1
     
-    dfs = {ch: pd.DataFrame({'Index': index_data[ch], 'Value': data[ch]}) for ch in data if data[ch]}
+    dfs = {
+        ch: pd.DataFrame({'Index': index_data[ch], 'Value': data[ch]})
+        for ch in data if data[ch]
+    }
     
     return dfs
 
 def plot_diff_values(dfs, sample_rate=1):
+    if not dfs:
+        print("No valid 'diff' channel data found. Nothing to plot.")
+        return
+
     fig, axes = plt.subplots(4, 2, figsize=(12, 8), sharex=True)
-    
+
     for i, (ch, df) in enumerate(dfs.items()):
         row, col = divmod(i, 2)
         ax = axes[row, col]
@@ -32,12 +40,15 @@ def plot_diff_values(dfs, sample_rate=1):
         ax.set_ylabel('Diff Value')
         ax.set_title(f'Channel {ch}')
         ax.grid()
-    
+
     plt.xlabel('Index')
     plt.tight_layout()
     plt.show()
 
 if __name__ == "__main__":
-    file_path = ""
-    diff_dfs = extract_diff_values(file_path)
-    plot_diff_values(diff_dfs, sample_rate=1)
+    file_path = ".txt"  # Replace with your actual log file path
+    if not os.path.isfile(file_path):
+        print("Invalid or missing file. Please check the path.")
+    else:
+        diff_dfs = extract_diff_values(file_path)
+        plot_diff_values(diff_dfs, sample_rate=1)

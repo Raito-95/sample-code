@@ -6,6 +6,7 @@ import numpy as np
 import cv2
 import pyautogui
 import time
+import datetime
 
 
 class ScreenRecorderApp:
@@ -66,14 +67,14 @@ class ScreenRecorderApp:
         )
         self.recording_status.pack(pady=10)
 
-        self.root.protocol("WM_DELETE_WINDOW", self.exit_program)
-        self.root.after(10, self.update)
-
         self.rect = None
         self.video_writer = None
         self.recording = False
         self.fps = 30
         self.last_time = time.time()
+
+        self.root.protocol("WM_DELETE_WINDOW", self.exit_program)
+        self.root.after(int(1000 / self.fps), self.update)  # initial fps-based loop
 
     def start_select_area(self):
         self.selection_window = tk.Toplevel(self.root)
@@ -116,21 +117,21 @@ class ScreenRecorderApp:
             self.rect_id = self.selection_canvas.create_rectangle(
                 normalized_rect, outline="red", width=5
             )
-        else:
-            print("Rectangle coordinates are not set properly.")
 
     def start_recording(self):
         if self.rect is None:
-            messagebox.showwarning(
-                "Warning", "Please select recording area before starting recording."
-            )
+            messagebox.showwarning("Warning", "Please select recording area first.")
             return
 
         if len(self.rect) != 4 or not all(isinstance(n, int) for n in self.rect):
-            messagebox.showwarning("Warning", "Recording area is not set correctly.")
+            messagebox.showwarning("Warning", "Invalid recording area.")
             return
 
+        now_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        default_name = f"screen_record_{now_str}.avi"
+
         save_path = filedialog.asksaveasfilename(
+            initialfile=default_name,
             defaultextension=".avi",
             filetypes=[("AVI files", "*.avi"), ("MP4 files", "*.mp4")],
         )
@@ -144,15 +145,13 @@ class ScreenRecorderApp:
         elif file_extension == ".mp4":
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         else:
-            messagebox.showwarning("Warning", "Unsupported file format selected.")
+            messagebox.showwarning("Warning", "Unsupported file format.")
             return
 
-        self.video_writer = cv2.VideoWriter(
-            save_path,
-            fourcc,
-            self.fps,
-            (self.rect[2] - self.rect[0], self.rect[3] - self.rect[1]),
-        )
+        width = abs(self.rect[2] - self.rect[0])
+        height = abs(self.rect[3] - self.rect[1])
+
+        self.video_writer = cv2.VideoWriter(save_path, fourcc, self.fps, (width, height))
 
         self.recording = True
         self.start_button.config(state=tk.DISABLED)
@@ -193,18 +192,15 @@ class ScreenRecorderApp:
 
                 self.last_time = current_time
 
-        self.root.after(10, self.update)
+        self.root.after(int(1000 / self.fps), self.update)
 
     def run(self):
         self.root.mainloop()
 
     def exit_program(self):
         if self.recording:
-            messagebox.showwarning(
-                "Warning", "Please stop the recording before exiting the program."
-            )
+            messagebox.showwarning("Warning", "Stop recording before exiting.")
             return
-
         self.root.destroy()
 
 

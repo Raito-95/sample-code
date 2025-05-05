@@ -7,7 +7,7 @@ def enhance_image(input_frame, enhancer_cls, enhance_factor, save_filepath):
     Enhance an image with a given factor using a specific PIL enhancer class and save it.
     """
     try:
-        enhancer = enhancer_cls(input_frame)
+        enhancer = enhancer_cls(input_frame.copy())
         enhanced_image = enhancer.enhance(enhance_factor)
         enhanced_image.save(save_filepath)
         print(f"Saved image to {save_filepath}, Enhancement factor: {enhance_factor}")
@@ -50,20 +50,26 @@ for name in enhancement_types.keys():
 images_list = get_images_list(current_path, image_extensions)
 for image_name in images_list:
     image_path = os.path.join(current_path, image_name)
+    base_name, ext = os.path.splitext(image_name)
+    ext = ext.lower().lstrip('.')  # e.g., "jpg"
+
     try:
-        frame = Image.open(image_path)
+        with Image.open(image_path) as frame:
+            for enhancer_name, enhancer_cls in enhancement_types.items():
+                enhancer_folder = os.path.join(data_path, enhancer_name)
+                enhance_factor = 0.5
+
+                for count in range(6):
+                    save_filepath = os.path.join(
+                        enhancer_folder,
+                        f"{base_name}_{enhancer_name}_{count + 1}.{ext}"
+                    )
+                    enhance_image(frame, enhancer_cls, enhance_factor, save_filepath)
+                    enhance_factor += 0.3
+
     except UnidentifiedImageError:
         print(f"Cannot identify image file {image_path}")
-        continue
+    except Exception as e:
+        print(f"Error processing image {image_path}: {e}")
 
-    for enhancer_name, enhancer_cls in enhancement_types.items():
-        enhancer_folder = os.path.join(data_path, enhancer_name)
-        enhance_factor = 0.5
-
-        for count in range(6):
-            save_filepath = os.path.join(
-                enhancer_folder,
-                f"{os.path.splitext(image_name)[0]}_{enhancer_name}_{count + 1}.png",
-            )
-            enhance_image(frame, enhancer_cls, enhance_factor, save_filepath)
-            enhance_factor += 0.3
+print("All images processed.")
