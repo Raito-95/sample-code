@@ -2,35 +2,35 @@
 
 ## Overview
 
-This repository contains various projects and examples demonstrating programming concepts and practical applications. The content is organized into categories such as algorithms, applications, data structures, and more.
+This repository contains various demo projects and sample code that demonstrate programming concepts and practical applications. The content is organized by topics such as algorithms, data structures, utility modules, and more.
 
 ---
 
-## Main Categories
+## Project Structure
 
-* **Algorithms**: Examples and implementations of different algorithms.
-* **Applications**: Practical applications including automation scripts and tools.
-* **DataStructures**: Implementations of common data structures.
-* **Doc**: Documentation and tutorials covering foundational and advanced topics.
-* **Stream**: Tools for handling video or data streaming.
-* **tests**: Code and framework for running tests.
+- **Algorithms**: Implementations of common algorithms such as sorting, searching, and recursion.
+- **Applications**: Practical tools, scripts, and automation examples.
+- **DataStructures**: Implementations of various data structures like lists, trees, stacks, queues, etc.
+- **Doc**: Internal documentation, notes, and tutorial materials.
+- **Stream**: Tools for working with video or data streaming.
+- **tests**: Unit tests used to verify the correctness of individual modules.
 
 ---
 
 ## Installation
 
-To set up the project locally, it's recommended to use a virtual environment to manage dependencies.
+It is recommended to use a Python virtual environment to isolate project dependencies.
 
-### 1. Create and activate virtual environment
+### 1. Create and activate a virtual environment
 
-**On macOS/Linux:**
+**macOS/Linux:**
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-**On Windows:**
+**Windows:**
 
 ```bash
 python -m venv venv
@@ -39,20 +39,26 @@ venv\Scripts\activate
 
 ### 2. Install dependencies
 
+To run the main functionality:
+
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-## Testing
-
-Run the test suite using `pytest`:
+To install test dependencies only:
 
 ```bash
-pytest
+pip install -r requirements-test.txt
 ```
 
-Make sure you're in the virtual environment when running tests.
+---
+
+This project includes a GitHub Actions workflow for automated testing:
+
+- Installs Python and test dependencies
+- Runs unit tests
+- Generates and uploads coverage reports
+
+The workflow is triggered on push or pull request to the `main` branch.
 
 ---
