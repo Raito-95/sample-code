@@ -15,6 +15,10 @@ __pycache__/
 .env
 *.log
 
+# Coverage report
+.coverage
+htmlcov/
+
 # Directories
 Alignment
 tool
@@ -23,8 +27,3 @@ dist
 create
 
 *.spec
-
-credentials.json
-_credentials.json
-*.bat
-chromedriver.exe
