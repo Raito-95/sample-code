@@ -59,10 +59,10 @@ def process_videos_in_current_dir(
             print(f"Error processing {video_file}: {e}")
 
 
-# Run directly
-process_videos_in_current_dir(
-    target_size=(640, 640),
-    output_dir="processed_videos",
-    fps=15,
-    bg_color=(0, 0, 0),
-)
+if __name__ == "__main__":
+    process_videos_in_current_dir(
+        target_size=(640, 640),
+        output_dir="processed_videos",
+        fps=15,
+        bg_color=(0, 0, 0),
+    )
