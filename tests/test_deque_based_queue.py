@@ -26,3 +26,10 @@ def test_is_empty(queue):
     queue.dequeue()
     queue.dequeue()
     assert queue.is_empty() is True
+
+
+def test_peek_empty_queue(queue):
+    queue.dequeue()
+    queue.dequeue()
+    queue.dequeue()
+    assert queue.peek() is None
