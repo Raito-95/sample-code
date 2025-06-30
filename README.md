@@ -8,7 +8,7 @@ This repository contains various demo projects and sample code that demonstrate 
 
 ## Project Structure
 
-- **Algorithms**: Implementations of common algorithms such as sorting, searching, and recursion.
+- **Algorithms**: Implementations of common algorithms such as sorting, searching, recursion, and graph traversal (e.g., BFS, Dijkstra).
 - **Applications**: Practical tools, scripts, and automation examples.
 - **DataStructures**: Implementations of various data structures like lists, trees, stacks, queues, etc.
 - **Doc**: Internal documentation, notes, and tutorial materials.
