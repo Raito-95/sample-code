@@ -9,10 +9,11 @@ This Python program allows you to manage and manipulate student grade data. It p
 - Add new student grade data.
 - Delete student grade data.
 - Sort student grades using Radix Sort.
+- Manage grades using a simple Tkinter GUI (`grade_system_gui.py`).
 
 ## Usage
 
-1. Run the `GradeSystem.py` script.
+1. Run the `GradeSystem.py` script or launch `grade_system_gui.py` for the GUI.
 
 2. Follow the on-screen menu to select the desired functionality.
 
