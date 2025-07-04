@@ -60,14 +60,15 @@ class BinaryTree:
 
 
 # Usage example
-binary_tree = BinaryTree()
-root = TreeNode(1)
-binary_tree.root = root
-binary_tree.insert_left(root, 2)
-binary_tree.insert_right(root, 3)
-binary_tree.insert_left(root.left, 4)
-binary_tree.insert_right(root.right, 5)
+if __name__ == "__main__":
+    binary_tree = BinaryTree()
+    root = TreeNode(1)
+    binary_tree.root = root
+    binary_tree.insert_left(root, 2)
+    binary_tree.insert_right(root, 3)
+    binary_tree.insert_left(root.left, 4)
+    binary_tree.insert_right(root.right, 5)
 
-print("Inorder traversal:", binary_tree.inorder_traversal())
-print("Preorder traversal:", binary_tree.preorder_traversal())
-print("Postorder traversal:", binary_tree.postorder_traversal())
+    print("Inorder traversal:", binary_tree.inorder_traversal())
+    print("Preorder traversal:", binary_tree.preorder_traversal())
+    print("Postorder traversal:", binary_tree.postorder_traversal())

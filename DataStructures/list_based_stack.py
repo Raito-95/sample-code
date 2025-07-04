@@ -47,12 +47,13 @@ class Stack:
 
 
 # Usage example
-stack = Stack()
-stack.push(1)
-stack.push(2)
-stack.push(3)
-print("Current Stack:", stack.display())  # Output should be [3, 2, 1]
-print("Top item:", stack.peek())  # Output should be 3
-popped_item = stack.pop()  # Should pop 3
-print("Popped item:", popped_item)
-print("Stack after pop:", stack.display())  # Output should be [2, 1]
+if __name__ == "__main__":
+    stack = Stack()
+    stack.push(1)
+    stack.push(2)
+    stack.push(3)
+    print("Current Stack:", stack.display())  # Output should be [3, 2, 1]
+    print("Top item:", stack.peek())  # Output should be 3
+    popped_item = stack.pop()  # Should pop 3
+    print("Popped item:", popped_item)
+    print("Stack after pop:", stack.display())  # Output should be [2, 1]

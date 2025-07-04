@@ -95,18 +95,19 @@ class BinarySearchTree:
 
 
 # Usage example
-bst = BinarySearchTree()
-bst.insert(5)
-bst.insert(3)
-bst.insert(7)
-bst.insert(2)
-bst.insert(4)
-bst.insert(6)
-bst.insert(8)
+if __name__ == "__main__":
+    bst = BinarySearchTree()
+    bst.insert(5)
+    bst.insert(3)
+    bst.insert(7)
+    bst.insert(2)
+    bst.insert(4)
+    bst.insert(6)
+    bst.insert(8)
 
-print("Inorder traversal:", bst.inorder_traversal())
-print("Preorder traversal:", bst.preorder_traversal())
-print("Postorder traversal:", bst.postorder_traversal())
-print("Search for 4:", bst.search(4))
-bst.delete(7)
-print("Inorder traversal after deleting 7:", bst.inorder_traversal())
+    print("Inorder traversal:", bst.inorder_traversal())
+    print("Preorder traversal:", bst.preorder_traversal())
+    print("Postorder traversal:", bst.postorder_traversal())
+    print("Search for 4:", bst.search(4))
+    bst.delete(7)
+    print("Inorder traversal after deleting 7:", bst.inorder_traversal())
