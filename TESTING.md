@@ -6,11 +6,21 @@
 
 ## 安裝測試相依套件
 
-請使用獨立的測試依賴檔案：
+請使用獨立的測試依賴檔案（若使用 uv 管理環境，先建立 venv）：
 
 ```bash
-pip install -r requirements-test.txt
+uv venv
+source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
 ```
+
+再安裝測試依賴：
+
+```bash
+uv pip install -r requirements-test.txt
+```
+
+> 補充：`uv init` 主要用於初始化新專案（建立 `pyproject.toml`/`uv.lock`）。
+> 本專案維持 `requirements-test.txt`，因此用 `uv pip install -r ...` 即可。
 
 `requirements-test.txt` 應包含：
 
