@@ -23,18 +23,18 @@ It is recommended to use a Python virtual environment to isolate project depende
 
 ### 1. Create and activate a virtual environment
 
-**macOS/Linux:**
+If you want uv to manage Python + virtual environments:
+
+```bash
+uv venv
+source .venv/bin/activate  # On Windows: .venv\\Scripts\\activate
+```
+
+If you prefer the standard Python tooling:
 
 ```bash
 python3 -m venv venv
-source venv/bin/activate
-```
-
-**Windows:**
-
-```bash
-python -m venv venv
-venv\Scripts\activate
+source venv/bin/activate  # On Windows: venv\\Scripts\\activate
 ```
 
 ### 2. Install dependencies
@@ -42,14 +42,21 @@ venv\Scripts\activate
 To run the main functionality:
 
 ```bash
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 To install test dependencies only:
 
 ```bash
-pip install -r requirements-test.txt
+uv pip install -r requirements-test.txt
 ```
+
+> Notes:
+> - `uv pip` is a drop-in replacement for `pip` that runs via uv.
+> - `uv init` is for bootstrapping a **new** uv-managed project (creates
+>   `pyproject.toml`/`uv.lock`). This repo already uses `requirements.txt`, so
+>   `uv pip install -r ...` is the compatible path unless you migrate to uv
+>   project files.
 
 ---
 
