@@ -14,6 +14,11 @@ def linear_search(item, items):
     return None  # Item not found
 
 
+def _is_non_decreasing(items):
+    """Return True when items are sorted in non-decreasing order."""
+    return all(items[index] <= items[index + 1] for index in range(len(items) - 1))
+
+
 def binary_search(item, items):
     """
     Performs a binary search to find the index of an item in a sorted list.
@@ -23,7 +28,13 @@ def binary_search(item, items):
 
     Returns:
         int or None: The index of the item if found, None otherwise.
+
+    Raises:
+        ValueError: If ``items`` is not sorted in non-decreasing order.
     """
+    if not _is_non_decreasing(items):
+        raise ValueError("binary_search requires a sorted list in non-decreasing order")
+
     first, last = 0, len(items) - 1
     while first <= last:
         mid = (first + last) // 2

@@ -34,6 +34,9 @@ class GradeSystem:
 
     def insert_grade(self, data):
         student_data = data.split()
+        if len(student_data) < 3 or len(student_data[1:]) % 2 != 0:
+            raise ValueError("資料格式錯誤，請使用: 學號 科目 成績 [科目 成績 ...]")
+
         student_no = student_data[0]
         subjects = student_data[1:]
         subject_grade = {}
@@ -51,22 +54,25 @@ class GradeSystem:
 class GradeSystemDriver:
     def __init__(self):
         self.grade_system = GradeSystem()
-        self.file_path = "grade2.txt"
+        self.file_path = os.path.join(os.path.dirname(__file__), "grade2.txt")
 
     def load_data(self):
         if os.path.exists(self.file_path):
             with open(self.file_path, "r", encoding="utf-8") as file:
                 for line in file:
-                    self.grade_system.insert_grade(line.strip())
+                    line = line.strip()
+                    if not line:
+                        continue
+                    self.grade_system.insert_grade(line)
             print(f"已從 {self.file_path} 匯入成績資料")
 
     def save_data(self):
         with open(self.file_path, "w", encoding="utf-8") as file:
             for student_no, subject_scores in self.grade_system.student_grade.items():
-                data = [
-                    f"{student_no} {subject} {score}"
-                    for subject, score in subject_scores.items()
-                ]
+                data = [student_no]
+                for subject, score in subject_scores.items():
+                    data.extend([subject, str(score)])
+
                 file.write(" ".join(data) + "\n")
 
     def run(self):
@@ -104,8 +110,11 @@ class GradeSystemDriver:
                 student_data = input(
                     "請輸入學生學號及科目成績 (例如:97531 DS 80 DM 80 LA 80): "
                 )
-                self.grade_system.insert_grade(student_data)
-                print("新增成功!")
+                try:
+                    self.grade_system.insert_grade(student_data)
+                    print("新增成功!")
+                except ValueError as e:
+                    print(e)
             elif choice == "4":
                 student_id = input("請輸入學號:")
                 self.grade_system.delete_grade(student_id)

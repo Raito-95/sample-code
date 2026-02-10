@@ -1,4 +1,6 @@
-from Algorithms.search_algorithms import linear_search, binary_search
+import pytest
+
+from Algorithms.search_algorithms import binary_search, linear_search
 
 
 def test_linear_search():
@@ -13,3 +15,8 @@ def test_binary_search():
     assert binary_search(30, items) == 2
     assert binary_search(100, items) is None
     assert binary_search(10, items) == 0
+
+
+def test_binary_search_rejects_unsorted_input():
+    with pytest.raises(ValueError):
+        binary_search(30, [10, 50, 30, 40])
