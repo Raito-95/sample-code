@@ -19,22 +19,22 @@ This repository contains various demo projects and sample code that demonstrate 
 
 ## Installation
 
-It is recommended to use a Python virtual environment to isolate project dependencies.
+You only need to install **uv**. You do **not** need to install Python manually.
 
-### 1. Create and activate a virtual environment
+### 1. Create and activate a virtual environment (uv manages Python)
 
 **macOS/Linux:**
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+uv venv --python 3.10
+source .venv/bin/activate
 ```
 
 **Windows:**
 
 ```bash
-python -m venv venv
-venv\Scripts\activate
+uv venv --python 3.10
+.venv\Scripts\activate
 ```
 
 ### 2. Install dependencies
@@ -42,20 +42,27 @@ venv\Scripts\activate
 To run the main functionality:
 
 ```bash
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 ```
 
 To install test dependencies only:
 
 ```bash
-pip install -r requirements-test.txt
+uv pip install -r requirements-test.txt
+```
+
+### 3. Run tests directly with uv (without manual Python setup)
+
+```bash
+uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/ --cov=. --cov-report=term --cov-report=html
 ```
 
 ---
 
 This project includes a GitHub Actions workflow for automated testing:
 
-- Installs Python and test dependencies
+- Installs uv
+- Uses uv-managed Python and test dependencies
 - Runs unit tests
 - Generates and uploads coverage reports
 
