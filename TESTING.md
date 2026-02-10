@@ -4,12 +4,24 @@
 
 ---
 
+## 前置條件
+
+只需安裝 `uv`，不需要另外手動安裝 Python。
+
+---
+
 ## 安裝測試相依套件
 
-請使用獨立的測試依賴檔案：
+如需建立本地 `.venv`，可先執行：
 
 ```bash
-pip install -r requirements-test.txt
+uv venv --python 3.10
+```
+
+再安裝測試相依套件：
+
+```bash
+uv pip install -r requirements-test.txt
 ```
 
 `requirements-test.txt` 應包含：
@@ -23,8 +35,10 @@ pytest-cov
 
 ## 執行測試（本地環境）
 
+建議直接使用 uv 執行（由 uv 管理 Python 與套件）：
+
 ```bash
-pytest --cov=. --cov-report=term --cov-report=html
+uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/ --cov=. --cov-report=term --cov-report=html
 ```
 
 * 終端機將顯示測試覆蓋率摘要
@@ -65,8 +79,8 @@ pytest --cov=. --cov-report=term --cov-report=html
 * 觸發條件：push 或 PR 到 `main` 分支
 * 流程概要：
 
-  1. 安裝 Python 3.10
-  2. 安裝 `requirements-test.txt` 中的套件
+  1. 安裝 uv
+  2. 由 uv 自動提供 Python 3.10 與 `requirements-test.txt` 中的套件
   3. 執行 `pytest` 並產生覆蓋率報告
   4. 上傳 HTML 覆蓋率報告至 Artifacts
 
