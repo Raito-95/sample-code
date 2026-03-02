@@ -1,5 +1,5 @@
 import pytest
-from DataStructures.binary_tree import BinaryTree, TreeNode
+from core.data_structures.binary_tree import BinaryTree, TreeNode
 
 
 @pytest.fixture
@@ -23,3 +23,4 @@ def test_preorder_traversal(binary_tree):
 
 def test_postorder_traversal(binary_tree):
     assert binary_tree.postorder_traversal() == [4, 2, 5, 3, 1]
+

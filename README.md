@@ -1,71 +1,71 @@
-# Sample Code
+﻿# Sample Code
 
-## Overview
+## 專案說明
 
-This repository contains various demo projects and sample code that demonstrate programming concepts and practical applications. The content is organized by topics such as algorithms, data structures, utility modules, and more.
+此 repo 目前聚焦三個可維護工具與一組基礎演算法/資料結構範例：
 
----
+- `apps/system_resource_monitor.py`
+- `apps/crypto_price_ticker.py`
+- `apps/algorithms_lab/student_grade_manager.py`
+- `core/algorithms`、`core/data_structures`
 
-## Project Structure
+## 目錄結構
 
-- **Algorithms**: Implementations of common algorithms such as sorting, searching, and recursion.
-- **Applications**: Practical tools, scripts, and automation examples.
-- **DataStructures**: Implementations of various data structures like lists, trees, stacks, queues, etc.
-- **Doc**: Internal documentation, notes, and tutorial materials.
-- **Stream**: Tools for working with video or data streaming.
-- **tests**: Unit tests used to verify the correctness of individual modules.
+- `apps/`: 可直接執行的工具程式
+- `core/`: 可重用、低副作用的核心實作
+- `tests/`: 單元測試
+- `Doc/`: 工具需求與學習筆記
 
----
+## 快速開始
 
-## Installation
-
-You only need to install **uv**. You do **not** need to install Python manually.
-
-### 1. Create and activate a virtual environment (uv manages Python)
-
-**macOS/Linux:**
+### 1. 建立虛擬環境
 
 ```bash
 uv venv --python 3.10
-source .venv/bin/activate
 ```
 
-**Windows:**
+Windows 啟用：
 
 ```bash
-uv venv --python 3.10
 .venv\Scripts\activate
 ```
 
-### 2. Install dependencies
+macOS/Linux 啟用：
 
-To run the main functionality:
+```bash
+source .venv/bin/activate
+```
+
+### 2. 安裝依賴
+
+執行工具：
 
 ```bash
 uv pip install -r requirements.txt
 ```
 
-To install test dependencies only:
+執行測試：
 
 ```bash
 uv pip install -r requirements-test.txt
 ```
 
-### 3. Run tests directly with uv (without manual Python setup)
+### 3. 執行應用程式
+
+```bash
+uv run --python 3.10 --with-requirements requirements.txt python apps/system_resource_monitor.py
+uv run --python 3.10 --with-requirements requirements.txt python apps/crypto_price_ticker.py
+uv run --python 3.10 --with-requirements requirements.txt python apps/algorithms_lab/student_grade_manager.py
+```
+
+### 4. 執行測試
 
 ```bash
 uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/ --cov=. --cov-report=term --cov-report=html
 ```
 
----
+## 維護原則
 
-This project includes a GitHub Actions workflow for automated testing:
-
-- Installs uv
-- Uses uv-managed Python and test dependencies
-- Runs unit tests
-- Generates and uploads coverage reports
-
-The workflow is triggered on push or pull request to the `main` branch.
-
----
+- `apps/` 可依賴 GUI、網路與系統資源 API。
+- `core/` 應保持可測試、可重用。
+- 修改行為時請同步更新 `Doc/Tools/*.md`、`TESTING.md`、`CONTRIBUTING.md`。

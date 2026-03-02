@@ -1,4 +1,4 @@
-from Algorithms.sorting_algorithms_recursion import bubble_sort, merge_sort, quick_sort
+from core.algorithms.sorting_algorithms_recursion import bubble_sort, merge_sort, quick_sort
 
 
 def test_bubble_sort():
@@ -18,3 +18,4 @@ def test_quick_sort():
     assert quick_sort(items, 0, len(items) - 1) == [10, 21, 34]
     assert quick_sort([], 0, 0) == []
     assert quick_sort([1], 0, 0) == [1]
+

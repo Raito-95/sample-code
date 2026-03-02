@@ -1,5 +1,5 @@
 import pytest
-from DataStructures.list_based_stack import Stack
+from core.data_structures.list_based_stack import Stack
 
 
 @pytest.fixture
@@ -26,3 +26,4 @@ def test_is_empty(stack):
     stack.pop()
     stack.pop()
     assert stack.is_empty() is True
+

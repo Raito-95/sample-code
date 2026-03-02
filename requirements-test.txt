@@ -1,2 +1,4 @@
 pytest
 pytest-cov
+PySide6==6.10.0
+psutil==7.1.1

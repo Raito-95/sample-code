@@ -1,5 +1,5 @@
 import pytest
-from DataStructures.binary_search_tree import BinarySearchTree
+from core.data_structures.binary_search_tree import BinarySearchTree
 
 
 @pytest.fixture
@@ -35,3 +35,4 @@ def test_preorder_traversal(bst):
 
 def test_postorder_traversal(bst):
     assert bst.postorder_traversal() == [2, 4, 3, 6, 8, 7, 5]
+

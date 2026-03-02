@@ -1,4 +1,4 @@
-from Algorithms.list_analysis_functions import is_sorted, find_max
+from core.algorithms.list_analysis_functions import is_sorted, find_max
 
 
 def test_is_sorted():
@@ -13,3 +13,4 @@ def test_find_max():
     assert find_max([5, 4, 3, 2, 1]) == 5
     assert find_max([]) is None
     assert find_max([1]) == 1
+

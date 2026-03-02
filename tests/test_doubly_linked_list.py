@@ -1,5 +1,5 @@
 import pytest
-from DataStructures.doubly_linked_list import DoublyLinkedList
+from core.data_structures.doubly_linked_list import DoublyLinkedList
 
 
 @pytest.fixture
@@ -25,3 +25,4 @@ def test_delete(dll):
 def test_find(dll):
     node = dll.find(3)
     assert node.data == 3
+

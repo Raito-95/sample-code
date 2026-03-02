@@ -1,5 +1,5 @@
 import pytest
-from DataStructures.deque_based_queue import Queue
+from core.data_structures.deque_based_queue import Queue
 
 
 @pytest.fixture
@@ -26,3 +26,4 @@ def test_is_empty(queue):
     queue.dequeue()
     queue.dequeue()
     assert queue.is_empty() is True
+

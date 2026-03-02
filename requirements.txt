@@ -1,41 +1,7 @@
-# Async and WebSocket
-asyncio
-websockets
+# Runtime dependencies for retained apps:
+# - apps/system_resource_monitor.py
+# - apps/crypto_price_ticker.py
 
-# GPU/Hardware Monitoring
-GPUtil
-psutil
-
-# Keyboard & Mouse Control
-keyboard
-pyautogui
-pynput
-
-# Data Processing & Visualization
-numpy
-matplotlib
-pandas
-
-# Audio & Multimedia
-pyaudio
-moviepy
-
-# Image Processing
-opencv-python
-Pillow
-pytesseract
-
-# GUI
-PyQt5
-
-# Networking
-requests
-
-# Environment Variables
-python-dotenv
-
-# Serial Communication
-pyserial
-
-# Translation & Language
-deep-translator
+PySide6==6.10.0
+psutil==7.1.1
+nvidia-ml-py==13.580.82

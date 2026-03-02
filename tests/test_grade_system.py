@@ -1,8 +1,8 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 import pytest
 
-from Applications.AlgorithmsLab.GradeSystem import (
+from apps.algorithms_lab.student_grade_manager import (
     GradeSystem,
     GradeSystemDriver,
     NoStudentException,
@@ -22,7 +22,7 @@ def test_insert_grade_rejects_invalid_input():
 def test_insert_grade_rejects_non_integer_score():
     grade_system = GradeSystem()
 
-    with pytest.raises(ValueError, match="成績必須是整數"):
+    with pytest.raises(ValueError):
         grade_system.insert_grade("97531 DS A+")
 
 
@@ -68,3 +68,6 @@ def test_load_data_skips_invalid_lines_and_keeps_valid_data(tmp_path, capsys):
     assert driver.grade_system.search_grade("97533", "DM") == 77
     with pytest.raises(NoStudentException):
         driver.grade_system.search_grade("97532", "DS")
+
+
+

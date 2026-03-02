@@ -1,5 +1,5 @@
 import pytest
-from DataStructures.singly_linked_list import SinglyLinkedList
+from core.data_structures.singly_linked_list import SinglyLinkedList
 
 
 @pytest.fixture
@@ -28,3 +28,4 @@ def test_search(sll):
 def test_reverse(sll):
     sll.reverse()
     assert sll.display() == [3, 2, 1]
+

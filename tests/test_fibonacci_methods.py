@@ -1,5 +1,5 @@
 import pytest
-from Algorithms.fibonacci_methods import fibonacci_recursive, fibonacci_iterative
+from core.algorithms.fibonacci_methods import fibonacci_recursive, fibonacci_iterative
 
 
 def test_fibonacci_recursive():
@@ -21,3 +21,4 @@ def test_fibonacci_negative():
         fibonacci_recursive(-1)
     with pytest.raises(ValueError):
         fibonacci_iterative(-1)
+
