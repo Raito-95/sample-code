@@ -1,4 +1,4 @@
-﻿# Sample Code
+# Sample Code
 
 ## 專案說明
 
@@ -68,6 +68,7 @@ uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/ --c
 ## 文件索引
 
 - 工具規格與教學：`Doc/Tools/`
+- 參考教材總覽：`Doc/README.md`（含 Complexity / DesignPatterns / Python）
 - 測試流程：`TESTING.md`
 - 貢獻流程：`CONTRIBUTING.md`
 

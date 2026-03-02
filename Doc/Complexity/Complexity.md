@@ -1,43 +1,47 @@
 # Time Complexity and Space Complexity
 
+本文件整理演算法分析常用的時間複雜度與空間複雜度概念。
+
 ## Time Complexity
 
-Time complexity is a computational complexity that describes the amount of time it takes to run an algorithm. The time complexity of an algorithm is commonly expressed using Big O notation, which categorizes algorithms based on how their run time or space requirements grow as the input size grows.
+時間複雜度描述輸入規模 `n` 增加時，演算法執行時間的成長趨勢，常用 Big O 表示上界。
 
 ### Common Time Complexities
 
-- **O(1)**: Constant time - the algorithm's run time does not change regardless of the input size.
-- **O(log n)**: Logarithmic time - the run time grows logarithmically with the input size.
-- **O(n)**: Linear time - the run time grows linearly with the input size.
-- **O(n log n)**: Linearithmic time - the run time grows linearly and logarithmically with the input size.
-- **O(n^2)**: Quadratic time - the run time grows quadratically with the input size.
-- **O(2^n)**: Exponential time - the run time grows exponentially with the input size.
+- `O(1)`: Constant time，輸入變大時幾乎不影響步驟數
+- `O(log n)`: Logarithmic time，每次縮小問題規模（如二分搜尋）
+- `O(n)`: Linear time，步驟與輸入大小成正比
+- `O(n log n)`: Linearithmic time，常見於高效排序
+- `O(n^2)`: Quadratic time，常見於雙層迴圈
+- `O(2^n)`: Exponential time，常見於暴力遞迴
 
-### Examples
+### Time Complexity Examples
 
-- **O(1)**: Accessing an element in an array by index.
-- **O(log n)**: Binary search in a sorted array.
-- **O(n)**: Linear search in an array.
-- **O(n log n)**: Merge sort and quicksort in their average cases.
-- **O(n^2)**: Bubble sort, selection sort, and insertion sort in their worst cases.
-- **O(2^n)**: Solving the Tower of Hanoi problem.
+- `O(1)`: 陣列以索引取值
+- `O(log n)`: 已排序陣列的 binary search
+- `O(n)`: linear search
+- `O(n log n)`: merge sort（平均）、quick sort（平均）
+- `O(n^2)`: bubble sort、selection sort（常見情況）
+- `O(2^n)`: 列舉所有子集合
 
 ## Space Complexity
 
-Space complexity refers to the amount of memory space required by an algorithm to run as a function of the input size. Similar to time complexity, space complexity is also expressed using Big O notation.
+空間複雜度描述演算法在輸入規模 `n` 下需要的額外記憶體量。
 
 ### Common Space Complexities
 
-- **O(1)**: Constant space - the algorithm's space requirement does not change regardless of the input size.
-- **O(n)**: Linear space - the space requirement grows linearly with the input size.
-- **O(n^2)**: Quadratic space - the space requirement grows quadratically with the input size.
+- `O(1)`: 僅使用固定額外空間
+- `O(n)`: 額外空間與輸入規模成正比
+- `O(n^2)`: 需要矩陣等二維結構
 
-### Examples
+### Space Complexity Examples
 
-- **O(1)**: A simple loop that requires a fixed amount of extra space.
-- **O(n)**: Storing a list of elements.
-- **O(n^2)**: Creating a 2D array of size n by n.
+- `O(1)`: 只使用少量變數的迴圈
+- `O(n)`: 建立長度為 `n` 的輔助陣列
+- `O(n^2)`: 建立 `n x n` 二維陣列
 
-## Conclusion
+## Practical Notes
 
-Understanding the time and space complexity of algorithms is crucial for writing efficient code. It helps in predicting the performance and resource utilization of algorithms, which is essential for developing scalable and high-performance applications.
+- 複雜度是趨勢分析，不是精確執行時間
+- 小資料量時，常數因子可能比 Big O 更關鍵
+- 選擇演算法時需同時看時間與空間的取捨
