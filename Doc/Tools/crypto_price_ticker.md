@@ -26,6 +26,7 @@ python apps/crypto_price_ticker.py
 - `FR-4`: 斷線後每 5 秒自動重試連線。
 - `FR-5`: 價格顯示規則：`>= 1000` 顯示千分位 + 2 位小數，`< 1000` 顯示 4 位小數。
 - `FR-6`: 支援系統匣操作（Show/Hide、Pin/Unpin、Move to Bottom Right、Exit）。
+- `FR-7`: 價格區採橫向排列，於同一列顯示 `BTC` 與 `ETH`。
 
 ## 非功能需求 (NFR)
 

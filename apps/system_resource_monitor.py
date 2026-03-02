@@ -14,6 +14,7 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
+    QHBoxLayout,
     QLabel,
     QMainWindow,
     QMenu,
@@ -82,12 +83,11 @@ class SystemMonitor(QMainWindow):
         root.setObjectName("root")
         self.setCentralWidget(root)
 
-        layout = QVBoxLayout(root)
-        layout.setContentsMargins(6, 6, 6, 6)
-        layout.setSpacing(4)
+        self._metrics_layout = QHBoxLayout(root)
+        self._metrics_layout.setContentsMargins(6, 6, 6, 6)
+        self._metrics_layout.setSpacing(4)
 
         self.cpu = MetricRow(root, "CPU: --%", QColor(255, 173, 110))
-        self.cpu.label.setWordWrap(True)
         self.mem = MetricRow(root, "Memory: --%", QColor(116, 224, 122))
         self.gpu = MetricRow(root, "GPU: --", QColor(102, 202, 238))
         self.gpu.label.setWordWrap(True)
@@ -96,11 +96,12 @@ class SystemMonitor(QMainWindow):
             row = MetricRow(root, f"Disk {self._short_mount_label(mount)}: --%", QColor(133, 174, 255))
             self.disk_rows.append((mount, row))
 
-        layout.addWidget(self.cpu)
-        layout.addWidget(self.mem)
-        layout.addWidget(self.gpu)
+        self._metrics_layout.addWidget(self.cpu)
+        self._metrics_layout.addWidget(self.mem)
         for _mount, row in self.disk_rows:
-            layout.addWidget(row)
+            self._metrics_layout.addWidget(row)
+        self._metrics_layout.addWidget(self.gpu)
+        self._freeze_metric_widths()
 
         root.setStyleSheet(
             """
@@ -126,7 +127,7 @@ class SystemMonitor(QMainWindow):
         self._apply_gpu_visibility()
         self._init_timers()
         self._init_tray()
-        self.resize(256, 212)
+        self.resize(760, 64)
         self._adjust_compact_width()
         QTimer.singleShot(100, self._move_to_bottom_right)
 
@@ -178,16 +179,40 @@ class SystemMonitor(QMainWindow):
             self.raise_()
 
     def _adjust_compact_width(self) -> None:
-        labels = [self.cpu.label, self.mem.label] + [row.label for _m, row in self.disk_rows]
+        rows = [self.cpu, self.mem] + [row for _m, row in self.disk_rows]
         if not self.gpu.isHidden():
-            labels.append(self.gpu.label)
-        max_text_width = 0
-        for label in labels:
-            for line in label.text().splitlines() or [label.text()]:
-                max_text_width = max(max_text_width, label.fontMetrics().horizontalAdvance(line))
-        target_width = max(228, min(272, max_text_width + 22))
-        if abs(self.width() - target_width) > 2:
-            self.resize(target_width, self.height())
+            rows.append(self.gpu)
+        if not rows:
+            return
+
+        margins = self._metrics_layout.contentsMargins()
+        spacing = self._metrics_layout.spacing() * max(0, len(rows) - 1)
+        target_width = sum(row.width() for row in rows) + spacing + margins.left() + margins.right()
+        target_height = max(52, max(row.sizeHint().height() for row in rows) + margins.top() + margins.bottom())
+
+        if abs(self.width() - target_width) > 2 or abs(self.height() - target_height) > 2:
+            self.resize(target_width, target_height)
+
+    def _freeze_metric_widths(self) -> None:
+        self._set_row_width(self.cpu, ["CPU: 100%"])
+        self._set_row_width(self.mem, ["Memory: 100% (999.9/999.9 GB)"])
+        for mount, row in self.disk_rows:
+            sample = f"Disk {self._short_mount_label(mount)}: 100% (9999/9999 GB)"
+            self._set_row_width(row, [sample])
+        self._set_row_width(
+            self.gpu,
+            [
+                "GPU: 100% | NVIDIA GeForce RTX 4090",
+                "Temp: 99C | VRAM: 24576/24576 MB",
+            ],
+        )
+
+    @staticmethod
+    def _set_row_width(row: MetricRow, samples: list[str]) -> None:
+        max_width = 0
+        for sample in samples:
+            max_width = max(max_width, row.label.fontMetrics().horizontalAdvance(sample))
+        row.setFixedWidth(max(112, max_width + 20))
 
     def _on_tray_clicked(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason in (

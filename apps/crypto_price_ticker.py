@@ -133,28 +133,26 @@ class TickerWidget(QWidget):
         for label in (self.btc_price, self.eth_price):
             label.setFont(price_font)
             label.setObjectName("price")
-            label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            label.setMinimumWidth(82)
+            label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
         row0 = QHBoxLayout()
         row0.addWidget(self.status)
         row0.addStretch()
 
         row1 = QHBoxLayout()
+        row1.setSpacing(4)
         row1.addWidget(self.btc_symbol)
-        row1.addStretch()
         row1.addWidget(self.btc_price)
-
-        row2 = QHBoxLayout()
-        row2.addWidget(self.eth_symbol)
-        row2.addStretch()
-        row2.addWidget(self.eth_price)
+        row1.addSpacing(6)
+        row1.addWidget(self.eth_symbol)
+        row1.addWidget(self.eth_price)
 
         container_layout = QVBoxLayout(self.container)
         container_layout.setContentsMargins(12, 10, 12, 10)
-        container_layout.setSpacing(4)
+        container_layout.setSpacing(6)
         container_layout.addLayout(row0)
         container_layout.addLayout(row1)
-        container_layout.addLayout(row2)
 
         root = QVBoxLayout(self)
         if self._is_windows:

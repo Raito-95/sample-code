@@ -35,12 +35,14 @@ python apps/system_resource_monitor.py
 - `FR-6`: 若啟動時 GPU 初始化失敗，每 10 秒自動重試偵測。
 - `FR-7`: 偵測到 GPU 後自動顯示 GPU 區塊並開始更新。
 - `FR-8`: 視窗寬度依文字內容自動壓縮（compact width）。
+- `FR-9`: 指標卡片採橫向排列（CPU / Memory / GPU / Disk 同列）。
 
 ## 非功能需求 (NFR)
 
 - `NFR-1`: 不使用趨勢圖，僅保留文字資訊。
 - `NFR-2`: 常駐置頂、無邊框，支援滑鼠拖曳（Pin 後不可拖曳）。
 - `NFR-3`: 沒有 GPU 或 NVML 不可用時，程式仍可運作。
+- `NFR-4`: 卡片欄位寬度固定，數值變化時不造成整體框體縮放抖動。
 
 ## 測試
 
