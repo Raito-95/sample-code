@@ -4,9 +4,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 
-pytest.importorskip("PySide6")
-
-from PySide6.QtWidgets import QApplication
+try:
+    from PySide6.QtWidgets import QApplication
+except ImportError as exc:
+    pytest.skip(f"PySide6 QtWidgets unavailable: {exc}", allow_module_level=True)
 
 from apps.crypto_price_ticker import PriceFeed, TickerWidget
 
@@ -43,4 +44,3 @@ def test_price_feed_ignores_invalid_payload(qapp):
     feed._on_message('{"stream":"btcusdt@trade","data":{}}')
 
     assert captured == []
-

@@ -5,9 +5,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 
-pytest.importorskip("PySide6")
-
-from PySide6.QtWidgets import QApplication
+try:
+    from PySide6.QtWidgets import QApplication
+except ImportError as exc:
+    pytest.skip(f"PySide6 QtWidgets unavailable: {exc}", allow_module_level=True)
 
 from apps import system_resource_monitor as srm
 
