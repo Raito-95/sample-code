@@ -43,6 +43,12 @@ uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/test
 uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/test_search_algorithms.py::test_binary_search -q
 ```
 
+## 工具相關測試重點
+
+- `test_system_resource_monitor.py`: GPU 名稱格式化、CPU 使用率顯示、Disk 更新、Tray 行為
+- `test_crypto_price_ticker.py`: 價格格式化、WebSocket 訊息解析、無效 payload 忽略
+- `test_grade_system.py`: 成績資料格式驗證、存讀檔行為、無效行略過
+
 ## CI 對齊
 
 GitHub Actions 會在 `push/pull_request` 到 `main` 時執行相同測試流程。

@@ -1,6 +1,4 @@
-import sys
-import platform
-import subprocess
+﻿import sys
 from pathlib import Path
 
 import psutil
@@ -43,6 +41,7 @@ except ImportError:
     NVML_AVAILABLE = False
     NVMLError = Exception  # type: ignore[assignment]
 
+
 class MetricRow(QFrame):
     def __init__(
         self,
@@ -77,7 +76,6 @@ class SystemMonitor(QMainWindow):
         self._drag_origin: QPoint | None = None
         self._gpu_handle = None
         self._nvml_initialized = False
-        self._cpu_brand = self._detect_cpu_brand()
         self._disk_mounts = self._discover_disk_mounts()
 
         root = QWidget(self)
@@ -290,65 +288,9 @@ class SystemMonitor(QMainWindow):
             mounts.append(str(Path("/")))
         return mounts
 
-    def _detect_cpu_model(self) -> str:
-        # 1) Fast path for most platforms.
-        name = platform.processor().strip()
-        if name:
-            return " ".join(name.split())
-
-        # 2) Windows fallback: WMIC.
-        if sys.platform.startswith("win"):
-            try:
-                out = subprocess.check_output(
-                    ["wmic", "cpu", "get", "name"],
-                    stderr=subprocess.DEVNULL,
-                    text=True,
-                    timeout=2,
-                )
-                lines = [line.strip() for line in out.splitlines() if line.strip() and line.strip().lower() != "name"]
-                if lines:
-                    return " ".join(lines[0].split())
-            except Exception:
-                pass
-
-        # 3) Linux fallback.
-        if sys.platform.startswith("linux"):
-            try:
-                with open("/proc/cpuinfo", "r", encoding="utf-8", errors="ignore") as f:
-                    for line in f:
-                        if line.lower().startswith("model name"):
-                            model = line.split(":", 1)[1].strip()
-                            if model:
-                                return " ".join(model.split())
-            except Exception:
-                pass
-
-        return "Unknown CPU"
-
-    @staticmethod
-    def _brand_from_model(model: str) -> str:
-        lowered = model.lower()
-        if "intel" in lowered:
-            return "Intel"
-        if "amd" in lowered or "ryzen" in lowered or "epyc" in lowered:
-            return "AMD"
-        if "apple" in lowered or "m1" in lowered or "m2" in lowered or "m3" in lowered:
-            return "Apple"
-        if "qualcomm" in lowered or "snapdragon" in lowered:
-            return "Qualcomm"
-        if "arm" in lowered:
-            return "ARM"
-        if "unknown" in lowered:
-            return "Unknown"
-        # Fallback to first token if no known brand keyword is found.
-        return model.split(" ", 1)[0] if model else "Unknown"
-
-    def _detect_cpu_brand(self) -> str:
-        return self._brand_from_model(self._detect_cpu_model())
-
     def _update_cpu(self) -> None:
         usage = psutil.cpu_percent()
-        self.cpu.set_text(f"CPU: {usage:.0f}%\nBrand: {self._cpu_brand}")
+        self.cpu.set_text(f"CPU: {usage:.0f}%")
         self._adjust_compact_width()
 
     def _update_memory(self) -> None:

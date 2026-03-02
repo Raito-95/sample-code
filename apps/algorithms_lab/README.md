@@ -9,12 +9,18 @@
 - 新增/覆寫學生成績
 - 刪除學生成績
 - 讀檔載入與存檔
+- 載入時略過空白行與無效資料行
 
 ## 執行方式
 
 ```bash
 uv run --python 3.10 --with-requirements requirements.txt python apps/algorithms_lab/student_grade_manager.py
 ```
+
+## 資料來源
+
+- 預設檔案：`apps/algorithms_lab/grade2.txt`
+- 啟動時載入，結束流程時覆寫回檔案
 
 ## 資料格式
 
@@ -28,6 +34,7 @@ uv run --python 3.10 --with-requirements requirements.txt python apps/algorithms
 
 - 第 1 欄：學號
 - 其餘欄位：`科目 分數` 成對出現
+- 分數需為整數
 
 ## 測試
 

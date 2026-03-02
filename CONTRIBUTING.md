@@ -5,12 +5,13 @@
 - `core/`: 放可重用邏輯，避免副作用
 - `apps/`: 放可執行工具，可依賴 GUI/網路/系統 API
 - `tests/`: 驗證行為，避免 fragile 測試
+- `Doc/`: 教學、規格與設計文件
 
 ## PR 基本規則
 
-1. 從 `main` 開分支
-2. 一個 PR 聚焦一件事
-3. PR 需附測試結果
+1. 從 `main` 開分支。
+2. 一個 PR 聚焦一件事。
+3. PR 需附測試結果。
 
 ## 必做檢查
 
@@ -24,6 +25,8 @@ uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/ --c
 
 ```bash
 uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/test_system_resource_monitor.py -q
+uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/test_crypto_price_ticker.py -q
+uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/test_grade_system.py -q
 ```
 
 ## 文件同步
@@ -33,6 +36,7 @@ uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/test
 - `README.md`
 - `TESTING.md`
 - `Doc/Tools/*.md`
+- `apps/algorithms_lab/README.md`（若涉及學生成績管理 CLI）
 
 ## 命名與風格
 

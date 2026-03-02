@@ -1,4 +1,4 @@
-import os
+﻿import os
 from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -23,9 +23,17 @@ def test_format_gpu_name_strips_known_vendor_prefix():
     assert srm.SystemMonitor._format_gpu_name("AMD Radeon RX 7800 XT") == "RX 7800 XT"
 
 
-def test_brand_from_model_extracts_vendor():
-    assert srm.SystemMonitor._brand_from_model("Intel(R) Core(TM) i7-12700H") == "Intel"
-    assert srm.SystemMonitor._brand_from_model("AMD Ryzen 9 7900X") == "AMD"
+def test_update_cpu_shows_usage_only(monkeypatch, qapp):
+    monkeypatch.setattr(srm.SystemMonitor, "_init_timers", lambda self: None)
+    monkeypatch.setattr(srm.SystemMonitor, "_init_gpu", lambda self: None)
+    monkeypatch.setattr(srm.SystemMonitor, "_discover_disk_mounts", lambda self: ["/disk1"])
+    monkeypatch.setattr(srm.QTimer, "singleShot", staticmethod(lambda *_args, **_kwargs: None))
+    monkeypatch.setattr(srm.psutil, "cpu_percent", lambda: 37.0)
+
+    monitor = srm.SystemMonitor()
+    monitor._update_cpu()
+
+    assert monitor.cpu.label.text() == "CPU: 37%"
 
 
 def test_update_disk_updates_disk_card(monkeypatch, qapp):
