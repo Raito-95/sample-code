@@ -1,14 +1,14 @@
-# Prototype Pattern
+﻿# 原型模式（Prototype Pattern）
 
-## Overview
+## 概觀
 
-The Prototype Pattern is a creational design pattern used to create objects based on a template of an existing object through cloning. This pattern is particularly useful when the creation of an object is costly or complex, but you need several instances that vary slightly in their initial state.
+原型模式是一種建立型設計模式，透過複製既有物件（Clone）來產生新物件。當物件建立成本高或初始化流程複雜時特別實用。
 
-## Python Implementation
+## Python 實作
 
-In Python, the Prototype Pattern can be implemented using the `copy` module, which provides the ability to perform shallow and deep copy operations. Here, we'll focus on a simple example that demonstrates cloning an object to create multiple prototypes.
+Python 可搭配 `copy` 模組進行淺拷貝或深拷貝。以下示範以深拷貝方式建立新實例。
 
-### Code Example
+### 程式範例
 
 ```python
 import copy
@@ -50,10 +50,10 @@ print(car1)  # Output: Model: Skoda Octavia, Engine: 1.4 TSI
 print(car2)  # Output: Model: Skoda Octavia, Engine: 2.0 TSI
 ```
 
-### Test Results
+### 範例說明
 
-The test demonstrates how we can use the Prototype manager (`Prototype` class) to store a prototypical instance (`Car` object) and create new objects by cloning and optionally modifying their properties.
+`Prototype` 管理已註冊的原型物件，`clone` 可快速產生副本並覆寫部分屬性。
 
-## Conclusion
+## 小結
 
-The Prototype Pattern allows for flexible object creation by cloning pre-existing objects, which can be more efficient than creating new instances from scratch, especially when dealing with complex objects. This pattern simplifies object creation and reduces the need for subclassing.
+原型模式可減少重複建構成本，適合需要大量相似物件、但只在少數欄位不同的情境。

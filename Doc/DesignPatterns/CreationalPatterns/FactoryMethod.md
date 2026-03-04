@@ -1,14 +1,14 @@
-# Factory Method Pattern
+﻿# 工廠方法模式（Factory Method Pattern）
 
-## Overview
+## 概觀
 
-The Factory Method Pattern is a creational design pattern that provides an interface for creating objects in a superclass, but allows subclasses to alter the type of objects that will be created. This pattern is particularly useful when there is a need to manage and manipulate collections of objects that are different but at the same time have many common characteristics.
+工廠方法模式是一種建立型設計模式。它在父類別中定義建立物件的介面，並讓子類別決定實際要建立哪種產品。
 
-## Python Implementation
+## Python 實作
 
-The Factory Method Pattern can be implemented by defining an interface or an abstract class with a factory method, which subclasses can then override to produce different types of objects.
+通常會有一個創建者（Creator）定義 `factory_method`，各具體創建者覆寫此方法來回傳不同產品。
 
-### Code Example
+### 程式範例
 
 ```python
 class Creator:
@@ -50,10 +50,10 @@ creatorB = ConcreteCreatorB()
 print(creatorB.operation())  # Output: Creator: The same creator's code has just worked with Result of the ConcreteProductB
 ```
 
-### Test Results
+### 範例說明
 
-The above code demonstrates how the factory method in the Creator abstract class allows for creating objects of ConcreteProductA or ConcreteProductB based on the subclass of Creator used. This pattern enables flexibility and reusability in the creation process.
+呼叫端面對的是 `Creator` 介面，不需要知道實際產品類別，能降低建立流程與使用流程的耦合。
 
-## Conclusion
+## 小結
 
-The Factory Method Pattern is a robust solution for decoupling the creation of objects from their usage. It allows for specifying what objects to create at runtime and promotes more modular and scalable code. This pattern is especially beneficial when a system needs to introduce new product types without altering existing client code.
+工廠方法模式能提升彈性，讓系統在不修改既有客戶端程式碼下擴充新產品型別。

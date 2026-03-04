@@ -1,14 +1,14 @@
-# Proxy Pattern
+﻿# 代理模式（Proxy Pattern）
 
-## Overview
+## 概觀
 
-The Proxy Pattern is a structural design pattern that provides an object representing another object. This surrogate or placeholder object controls access to the original object, allowing it to perform tasks such as lazy initialization, access control, logging, and handling expensive operations. The Proxy Pattern is useful when you want to manage or enhance the interaction between clients and a real object.
+代理模式是一種結構型設計模式，提供「代理物件」代表真實物件對外服務。代理可在轉發前後加入權限控制、延遲載入、記錄等邏輯。
 
-## Python Implementation
+## Python 實作
 
-The Proxy Pattern can be implemented by creating a proxy class that encapsulates the real class, interfacing with it as needed. This can involve forwarding requests to the real object, performing additional operations before or after forwarding, or even deciding not to forward requests based on certain conditions.
+可建立 `Proxy` 與 `RealSubject` 實作相同介面，讓客戶端透過代理存取真實物件。
 
-### Code Example
+### 程式範例
 ```python
 class Subject:
     """ Define the common interface for RealSubject and Proxy so that a Proxy can be used anywhere a RealSubject is expected. """
@@ -48,10 +48,10 @@ proxy = Proxy(real_subject)
 print(proxy.request())  # Output: Proxy: Log start -> RealSubject: Handling request. -> Log end
 ```
 
-### Test Results
+### 範例說明
 
-The example above shows how the Proxy class can control access to the RealSubject class. It can perform actions before and after forwarding the request to the real subject, such as checking permissions and logging.
+`Proxy` 在轉發請求前先做存取檢查，並於完成後記錄存取行為。
 
-## Conclusion
+## 小結
 
-The Proxy Pattern is useful for managing the access and functionality of an object without altering its code. It is particularly valuable in scenarios where you want to add or enhance the behavior of objects dynamically, or when direct access to the object is not desired or possible due to resource constraints or security considerations.
+代理模式能在不改動核心物件的前提下附加控制邏輯，適合權限、快取與監控等場景。

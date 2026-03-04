@@ -1,14 +1,14 @@
-# Decorator Pattern
+﻿# 裝飾者模式（Decorator Pattern）
 
-## Overview
+## 概觀
 
-The Decorator Pattern is a structural design pattern that allows behavior to be added to individual objects, either statically or dynamically, without affecting the behavior of other objects from the same class. This pattern is particularly useful for adhering to the Single Responsibility Principle, as it allows functionality to be divided between classes with unique areas of concern.
+裝飾者模式是一種結構型設計模式，可在不修改原始類別的情況下，動態為物件加上額外行為。
 
-## Python Implementation
+## Python 實作
 
-The Decorator Pattern can be implemented by defining a base component interface and then creating several decorator classes that enhance the functionality of objects that implement this interface, without changing the object's core functionality.
+可先定義共同元件介面，再建立多個裝飾者包裹元件，逐層擴充功能。
 
-### Code Example
+### 程式範例
 ```python
 class Component:
     """ Defines the interface for objects that can have responsibilities added to them dynamically. """
@@ -49,10 +49,10 @@ more_decorated = ConcreteDecoratorB(decorated)
 print(more_decorated.operation())  # Output: ConcreteDecoratorB: Enhanced Operation (ConcreteDecoratorA: Enhanced Operation (ConcreteComponent: Base Operation))
 ```
 
-### Test Results
+### 範例說明
 
-This example demonstrates how decorators can add new functionalities to objects dynamically while keeping the same interface, showing multiple layers of decorators enhancing the behavior of a simple object.
+範例展示如何透過多層裝飾者在同一介面下逐步擴充功能，而不影響原始元件。
 
-## Conclusion
+## 小結
 
-The Decorator Pattern is a valuable tool for extending the functionality of objects without the need to modify existing codebase or overload subclassing in systems where new functionalities are frequently required. It provides a flexible alternative to subclassing for extending functionality.
+裝飾者模式提供比繼承更彈性的擴充方式，適合功能組合頻繁變動的系統。

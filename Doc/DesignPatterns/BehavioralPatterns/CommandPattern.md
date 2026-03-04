@@ -1,14 +1,14 @@
-# Command Pattern
+﻿# 命令模式（Command Pattern）
 
-## Overview
+## 概觀
 
-The Command Pattern is a behavioral design pattern that turns a request into a stand-alone object that contains all information about the request. This transformation allows you to parameterize methods with different requests, delay or queue a request's execution, and support undoable operations. It is particularly useful for implementing things like transactional behavior and managing operations on data.
+命令模式是一種行為型設計模式，將「請求」封裝成獨立物件，讓你可以用一致方式處理不同操作。透過這種封裝，你可以延遲執行、排隊執行，甚至支援撤銷（Undo）等能力。
 
-## Python Implementation
+## Python 實作
 
-The Command Pattern can be implemented by defining a command interface with an execute method, and concrete command classes that encapsulate a request by binding together all of the information needed to perform the action.
+命令模式通常包含一個命令介面（例如 `execute` 方法），再由具體命令類別封裝實際操作；呼叫端只需觸發命令，不需知道細節。
 
-### Code Example
+### 程式範例
 ```python
 class Command:
     """ The Command interface declares a method for executing a command. """
@@ -85,10 +85,10 @@ invoker.on_finish = ComplexCommand(receiver, "Send email", "Save report")
 invoker.do_something_important()
 ```
 
-### Test Results
+### 範例說明
 
-The example above demonstrates how the Invoker issues commands to start and finish its operations, with commands encapsulating all the necessary details. `SimpleCommand` handles simple printing, while `ComplexCommand` involves more complex interaction with the `Receiver`.
+上例展示 `Invoker` 在流程前後觸發不同命令，`SimpleCommand` 處理簡單動作，`ComplexCommand` 則委派給 `Receiver` 處理實際商業邏輯。
 
-## Conclusion
+## 小結
 
-The Command Pattern is invaluable for designing flexible and extensible systems, as it decouples the sender of a request from its receivers, allowing a variety of operations to be performed. It supports undo operations, logging, and transactional behaviors.
+命令模式可降低呼叫端與執行端的耦合，提升系統擴充性，也常用於撤銷、操作記錄與工作佇列等場景。

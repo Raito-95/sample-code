@@ -1,15 +1,15 @@
-# Strategy Pattern
+﻿# 策略模式（Strategy Pattern）
 
-## Overview
+## 概觀
 
-The Strategy Pattern is a behavioral design pattern that enables an algorithm's behavior to be selected at runtime. Rather than implementing a single algorithm directly, code receives run-time instructions as to which in a family of algorithms to use. It is used to define a family of algorithms, encapsulate each one, and make them interchangeable, allowing for the algorithm to vary independently from clients that use it.
+策略模式是一種行為型設計模式，將一組可互換的演算法封裝成不同策略，讓系統可以在執行期選擇要使用哪一種演算法。
 
-## Python Implementation
+## Python 實作
 
-The Strategy Pattern can be implemented by defining a context class to use different strategies, an interface common to all supported algorithms, and a set of strategies that implement these algorithmic operations.
+通常會定義共同策略介面、多個具體策略，以及一個 `Context` 來持有並使用策略。
 
-### Code Example
-```
+### 程式範例
+```python
 class Strategy:
     """ Define an interface common to all supported algorithms. """
     def do_algorithm(self, data):
@@ -52,10 +52,10 @@ context.strategy = ConcreteStrategyB()
 context.do_some_business_logic(data)  # Output: [89, 34, 23, 7, 5]
 ```
 
-### Test Results
+### 範例說明
 
-The example above demonstrates how the Context class uses different strategies to sort a list of integers. ConcreteStrategyA sorts the data in ascending order, while ConcreteStrategyB sorts it in descending order. The Context object changes its behavior according to the strategy it uses, showing flexibility and dynamism in applying different algorithms.
+`Context` 可以在不修改自身流程的前提下切換策略。上例中，資料排序可在遞增與遞減演算法之間彈性切換。
 
-## Conclusion
+## 小結
 
-The Strategy Pattern provides a way to configure a class with one of many behaviors. By defining a series of algorithms and encapsulating each one, switching between different algorithms becomes straightforward. This pattern is particularly useful when you need to dynamically change algorithms used in an application depending on the situation.
+策略模式可把演算法選擇從主流程中抽離，提升可維護性與擴充性。

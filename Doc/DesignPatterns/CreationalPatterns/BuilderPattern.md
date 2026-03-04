@@ -1,14 +1,14 @@
-# Builder Pattern
+﻿# 建造者模式（Builder Pattern）
 
-## Overview
+## 概觀
 
-The Builder Pattern is a creational design pattern that provides a method for constructing complex objects without having to directly instantiate their components. This allows client code to avoid dealing with the object's internal structure and instead focus on specifying the type and content of the object to be built.
+建造者模式是一種建立型設計模式，用來分離「複雜物件的建構流程」與「最終表示」。呼叫端只需指定要建什麼，不必關注每個零件如何組裝。
 
-## Python Implementation
+## Python 實作
 
-The Builder Pattern typically involves a 'Director' class that delegates construction requests from the client to specific builder objects, each of which is responsible for creating different parts of the object.
+常見結構包含 `Director`（控制建構順序）與 `Builder`（負責具體零件建造）。
 
-### Code Example
+### 程式範例
 
 ```python
 # Builder Pattern
@@ -56,10 +56,10 @@ car = builder.car
 print(car)  # Output: SUV | Off-road tires | Turbo engine
 ```
 
-### Test Results
+### 範例說明
 
-The above code demonstrates how to use the Builder Pattern to construct an instance of a car. The construction process is controlled by the Director object, while the specific building details are managed by the Builder object.
+上例由 `Director` 控制建造步驟，`CarBuilder` 負責填入車型、輪胎與引擎設定。
 
-## Conclusion
+## 小結
 
-The Builder Pattern is particularly suited for situations where creating complex objects involves multiple steps. By encapsulating the construction process within a separate Builder object, the pattern makes the code more modular, easier to manage, and extendable.
+建造者模式適合建構步驟多、組合複雜的物件，可讓流程更模組化，也便於替換不同建造策略。

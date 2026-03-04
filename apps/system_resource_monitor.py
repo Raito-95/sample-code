@@ -1,4 +1,6 @@
-﻿import sys
+﻿import json
+import subprocess
+import sys
 from pathlib import Path
 
 import psutil
@@ -14,7 +16,6 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
-    QHBoxLayout,
     QLabel,
     QMainWindow,
     QMenu,
@@ -47,23 +48,27 @@ class MetricRow(QFrame):
     def __init__(
         self,
         parent: QWidget,
-        initial_text: str,
-        _color: QColor,
+        title: str,
+        detail: str,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("metricRow")
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(6, 5, 6, 5)
-        layout.setSpacing(0)
+        layout.setContentsMargins(8, 5, 8, 5)
+        layout.setSpacing(1)
 
-        self.label = QLabel(initial_text, self)
-        self.label.setObjectName("metricLabel")
+        self.title_label = QLabel(title, self)
+        self.title_label.setObjectName("metricTitle")
+        self.detail_label = QLabel(detail, self)
+        self.detail_label.setObjectName("metricDetail")
+        self.detail_label.setWordWrap(True)
 
-        layout.addWidget(self.label)
+        layout.addWidget(self.title_label)
+        layout.addWidget(self.detail_label)
 
-    def set_text(self, text: str) -> None:
-        self.label.setText(text)
+    def set_detail(self, detail: str) -> None:
+        self.detail_label.setText(detail)
 
 
 class SystemMonitor(QMainWindow):
@@ -78,22 +83,25 @@ class SystemMonitor(QMainWindow):
         self._gpu_handle = None
         self._nvml_initialized = False
         self._disk_mounts = self._discover_disk_mounts()
+        self._disk_types = self._detect_disk_types()
 
         root = QWidget(self)
         root.setObjectName("root")
         self.setCentralWidget(root)
 
-        self._metrics_layout = QHBoxLayout(root)
-        self._metrics_layout.setContentsMargins(6, 6, 6, 6)
-        self._metrics_layout.setSpacing(4)
+        self._metrics_layout = QVBoxLayout(root)
+        self._metrics_layout.setContentsMargins(5, 5, 5, 5)
+        self._metrics_layout.setSpacing(3)
 
-        self.cpu = MetricRow(root, "CPU: --%", QColor(255, 173, 110))
-        self.mem = MetricRow(root, "Memory: --%", QColor(116, 224, 122))
-        self.gpu = MetricRow(root, "GPU: --", QColor(102, 202, 238))
-        self.gpu.label.setWordWrap(True)
+        self.cpu = MetricRow(root, "CPU", "--%")
+        self.mem = MetricRow(root, "Memory", "--%")
+        self.gpu = MetricRow(root, "GPU", "--")
         self.disk_rows: list[tuple[str, MetricRow]] = []
         for mount in self._disk_mounts:
-            row = MetricRow(root, f"Disk {self._short_mount_label(mount)}: --%", QColor(133, 174, 255))
+            short = self._short_mount_label(mount)
+            kind = self._disk_types.get(short, "")
+            title = f"Disk {short}" if not kind else f"Disk {short} ({kind})"
+            row = MetricRow(root, title, "--%")
             self.disk_rows.append((mount, row))
 
         self._metrics_layout.addWidget(self.cpu)
@@ -101,24 +109,28 @@ class SystemMonitor(QMainWindow):
         for _mount, row in self.disk_rows:
             self._metrics_layout.addWidget(row)
         self._metrics_layout.addWidget(self.gpu)
-        self._freeze_metric_widths()
 
         root.setStyleSheet(
             """
             QWidget#root {
-                background-color: rgba(15, 20, 29, 195);
+                background-color: rgba(15, 20, 29, 210);
                 border: 1px solid rgba(255, 255, 255, 42);
                 border-radius: 12px;
             }
             QFrame#metricRow {
-                background-color: rgba(255, 255, 255, 7);
+                background-color: rgba(255, 255, 255, 6);
                 border: 1px solid rgba(255, 255, 255, 16);
-                border-radius: 8px;
+                border-radius: 7px;
             }
-            QLabel#metricLabel {
+            QLabel#metricTitle {
                 color: #eef2ff;
                 font-size: 12px;
-                font-weight: 600;
+                font-weight: 700;
+            }
+            QLabel#metricDetail {
+                color: #d2dbec;
+                font-size: 11px;
+                font-weight: 500;
             }
             """
         )
@@ -127,7 +139,7 @@ class SystemMonitor(QMainWindow):
         self._apply_gpu_visibility()
         self._init_timers()
         self._init_tray()
-        self.resize(760, 64)
+        self.resize(200, 220)
         self._adjust_compact_width()
         QTimer.singleShot(100, self._move_to_bottom_right)
 
@@ -187,32 +199,16 @@ class SystemMonitor(QMainWindow):
 
         margins = self._metrics_layout.contentsMargins()
         spacing = self._metrics_layout.spacing() * max(0, len(rows) - 1)
-        target_width = sum(row.width() for row in rows) + spacing + margins.left() + margins.right()
-        target_height = max(52, max(row.sizeHint().height() for row in rows) + margins.top() + margins.bottom())
+        target_width = min(210, max(180, max(row.sizeHint().width() for row in rows) + margins.left() + margins.right()))
+        target_height = (
+            sum(row.sizeHint().height() for row in rows)
+            + spacing
+            + margins.top()
+            + margins.bottom()
+        )
 
         if abs(self.width() - target_width) > 2 or abs(self.height() - target_height) > 2:
             self.resize(target_width, target_height)
-
-    def _freeze_metric_widths(self) -> None:
-        self._set_row_width(self.cpu, ["CPU: 100%"])
-        self._set_row_width(self.mem, ["Memory: 100% (999.9/999.9 GB)"])
-        for mount, row in self.disk_rows:
-            sample = f"Disk {self._short_mount_label(mount)}: 100% (9999/9999 GB)"
-            self._set_row_width(row, [sample])
-        self._set_row_width(
-            self.gpu,
-            [
-                "GPU: 100% | NVIDIA GeForce RTX 4090",
-                "Temp: 99C | VRAM: 24576/24576 MB",
-            ],
-        )
-
-    @staticmethod
-    def _set_row_width(row: MetricRow, samples: list[str]) -> None:
-        max_width = 0
-        for sample in samples:
-            max_width = max(max_width, row.label.fontMetrics().horizontalAdvance(sample))
-        row.setFixedWidth(max(112, max_width + 20))
 
     def _on_tray_clicked(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason in (
@@ -291,6 +287,47 @@ class SystemMonitor(QMainWindow):
             return mount.rstrip("\\").rstrip(":") + ":"
         return mount
 
+    def _detect_disk_types(self) -> dict[str, str]:
+        if not sys.platform.startswith("win"):
+            return {}
+
+        command = (
+            "$result=@{}; "
+            "Get-Volume | Where-Object {$_.DriveLetter} | ForEach-Object { "
+            "$dl=$_.DriveLetter; $kind=''; "
+            "try { "
+            "$pd=Get-Partition -DriveLetter $dl -ErrorAction Stop | "
+            "Get-Disk -ErrorAction Stop | "
+            "Get-PhysicalDisk -ErrorAction Stop | Select-Object -First 1; "
+            "if($pd -and $pd.MediaType){$kind=$pd.MediaType.ToString()} "
+            "} catch {} "
+            "$result[($dl+':')]=$kind "
+            "}; $result | ConvertTo-Json -Compress"
+        )
+        try:
+            output = subprocess.check_output(
+                ["powershell", "-NoProfile", "-Command", command],
+                text=True,
+                stderr=subprocess.DEVNULL,
+                timeout=3,
+            ).strip()
+            raw = json.loads(output) if output else {}
+            if not isinstance(raw, dict):
+                return {}
+
+            normalized: dict[str, str] = {}
+            for drive, kind in raw.items():
+                value = str(kind).upper()
+                if "SSD" in value:
+                    normalized[str(drive)] = "SSD"
+                elif "HDD" in value:
+                    normalized[str(drive)] = "HDD"
+                else:
+                    normalized[str(drive)] = ""
+            return normalized
+        except Exception:
+            return {}
+
     def _discover_disk_mounts(self) -> list[str]:
         mounts: list[str] = []
         seen: set[str] = set()
@@ -298,7 +335,6 @@ class SystemMonitor(QMainWindow):
             mount = part.mountpoint
             if not mount or mount in seen:
                 continue
-            # Skip non-physical mounts when possible.
             if "cdrom" in (part.opts or "").lower():
                 continue
             try:
@@ -315,29 +351,28 @@ class SystemMonitor(QMainWindow):
 
     def _update_cpu(self) -> None:
         usage = psutil.cpu_percent()
-        self.cpu.set_text(f"CPU: {usage:.0f}%")
+        freq = psutil.cpu_freq()
+        freq_text = f"{freq.current / 1000:.2f}GHz" if freq else "N/A"
+        self.cpu.set_detail(f"{usage:.0f}% {freq_text}")
         self._adjust_compact_width()
 
     def _update_memory(self) -> None:
         mem = psutil.virtual_memory()
-        self.mem.set_text(f"Memory: {mem.percent:.0f}% ({mem.used / 1024**3:.1f}/{mem.total / 1024**3:.1f} GB)")
+        self.mem.set_detail(f"{mem.used / 1024**3:.1f}/{mem.total / 1024**3:.1f} GB {mem.percent:.0f}%")
         self._adjust_compact_width()
 
     def _update_disk(self) -> None:
         for mount, row in self.disk_rows:
             try:
                 disk = psutil.disk_usage(mount)
-                row.set_text(
-                    f"Disk {self._short_mount_label(mount)}: {disk.percent:.0f}% "
-                    f"({disk.used / 1024**3:.0f}/{disk.total / 1024**3:.0f} GB)"
-                )
+                row.set_detail(f"{disk.used / 1024**3:.0f}/{disk.total / 1024**3:.0f} GB {disk.percent:.0f}%")
             except Exception:
-                row.set_text(f"Disk {self._short_mount_label(mount)}: unavailable")
+                row.set_detail("unavailable")
         self._adjust_compact_width()
 
     def _update_gpu(self) -> None:
         if not self._gpu_handle:
-            self.gpu.set_text("GPU: unavailable")
+            self.gpu.set_detail("unavailable")
             self._adjust_compact_width()
             return
 
@@ -349,16 +384,15 @@ class SystemMonitor(QMainWindow):
             if isinstance(name, bytes):
                 name = name.decode("utf-8", errors="ignore")
             pretty_name = self._format_gpu_name(str(name))
-            self.gpu.set_text(
-                f"GPU: {util.gpu:.0f}% | {pretty_name}\n"
-                f"Temp: {temp}C | VRAM: {mem.used / 1024**2:.0f}/{mem.total / 1024**2:.0f} MB"
+            self.gpu.set_detail(
+                f"{pretty_name}\n{util.gpu:.0f}% {temp}C VRAM {mem.used / 1024**2:.0f}/{mem.total / 1024**2:.0f}MB"
             )
             self._adjust_compact_width()
         except NVMLError:
-            self.gpu.set_text("GPU: read error")
+            self.gpu.set_detail("read error")
             self._adjust_compact_width()
         except Exception:
-            self.gpu.set_text("GPU: read error")
+            self.gpu.set_detail("read error")
             self._adjust_compact_width()
 
     def _move_to_bottom_right(self) -> None:
@@ -402,3 +436,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

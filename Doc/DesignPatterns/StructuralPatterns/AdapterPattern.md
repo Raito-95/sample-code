@@ -1,14 +1,14 @@
-# Adapter Pattern
+﻿# 轉接器模式（Adapter Pattern）
 
-## Overview
+## 概觀
 
-The Adapter Pattern is a structural design pattern that allows objects with incompatible interfaces to collaborate. It works by creating a middle-layer that translates, or "adapts," the interface of one class to be used as another interface. This pattern is particularly useful when wanting to use existing classes without modifying their source code.
+轉接器模式是一種結構型設計模式，可讓介面不相容的類別彼此協作。它透過中介層把既有介面轉成客戶端期望的介面。
 
-## Python Implementation
+## Python 實作
 
-The Adapter Pattern can be implemented by defining an adapter class that wraps the existing class and provides the expected interface through delegation.
+常見做法是建立 `Adapter` 包裝既有物件，並在 `Adapter` 內轉換資料或呼叫方式。
 
-### Code Example
+### 程式範例
 ```python
 class Target:
     """ The Target defines the domain-specific interface used by the client code. """
@@ -37,10 +37,10 @@ adapter = Adapter(adaptee)
 print(adapter.request())  # Output: Adapter: (TRANSLATED) Special behavior of the Adaptee.
 ```
 
-### Test Results
+### 範例說明
 
-This example illustrates how the Adapter pattern allows the client to use the Adaptee's special behavior through the Target interface by reversing the string returned by the Adaptee's specific request method. This adaptation lets the client interact with the Adaptee without any direct modifications to its source code.
+`Adapter` 反轉 `Adaptee` 回傳字串後，讓客戶端能以 `Target` 介面取得可用結果。
 
-## Conclusion
+## 小結
 
-The Adapter Pattern provides a flexible solution to interface incompatibility issues between classes. It enables objects to work together that couldn't otherwise because of mismatched interfaces. The use of this pattern makes it easier to introduce new class adapters without changing the client code.
+轉接器模式特別適合整合舊系統或第三方元件，可在不修改原始碼下完成介面相容。

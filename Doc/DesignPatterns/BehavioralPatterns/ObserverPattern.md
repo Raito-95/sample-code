@@ -1,14 +1,14 @@
-# Observer Pattern
+﻿# 觀察者模式（Observer Pattern）
 
-## Overview
+## 概觀
 
-The Observer Pattern is a behavioral design pattern in which an object, known as the subject, maintains a list of its dependents, called observers, and notifies them automatically of any state changes, usually by calling one of their methods. It is used primarily to implement distributed event-handling systems, where the subject needs to notify an open-ended number of "observers" about the occurrence of some event.
+觀察者模式是一種行為型設計模式。主題物件（Subject）維護一組觀察者（Observer），當主題狀態改變時，會主動通知所有觀察者更新。
 
-## Python Implementation
+## Python 實作
 
-The Observer Pattern can be implemented in Python by creating a subject class that keeps track of observers and notifies them of changes, and observer classes that define the updating interface.
+可建立一個主題類別管理訂閱/取消訂閱，並在狀態改變時呼叫所有觀察者的更新方法。
 
-### Code Example
+### 程式範例
 ```python
 class Subject:
     """ Represents what is being 'observed' """
@@ -75,10 +75,10 @@ subject.subject_state = "state changed"
 #         ConcreteObserverB: Reacted to the event
 ```
 
-### Test Results
+### 範例說明
 
-The example above shows how ConcreteObserverA and ConcreteObserverB are notified of changes in ConcreteSubject. When the `subject_state` is set, both attached observers are updated via their `update` method.
+當 `ConcreteSubject` 的 `subject_state` 被設定時，所有已訂閱的觀察者都會透過 `update` 方法收到通知。
 
-## Conclusion
+## 小結
 
-The Observer Pattern is useful for scenarios where a change to one object requires changing others, and particularly when the number of objects that need to be changed is unknown or changes dynamically. It provides an excellent way to create a loosely coupled system where the subject and observers can interact without being tightly bound.
+觀察者模式適合事件通知、多方同步更新等情境，可在不緊耦合的前提下讓主題與觀察者協作。
