@@ -30,11 +30,14 @@ def test_update_cpu_shows_usage_only(monkeypatch, qapp):
     monkeypatch.setattr(srm.SystemMonitor, "_discover_disk_mounts", lambda self: ["/disk1"])
     monkeypatch.setattr(srm.QTimer, "singleShot", staticmethod(lambda *_args, **_kwargs: None))
     monkeypatch.setattr(srm.psutil, "cpu_percent", lambda: 37.0)
+    monkeypatch.setattr(srm.psutil, "cpu_freq", lambda: SimpleNamespace(current=4200.0))
 
     monitor = srm.SystemMonitor()
     monitor._update_cpu()
 
-    assert monitor.cpu.label.text() == "CPU: 37%"
+    assert monitor.cpu.value_label.text() == "37%"
+    assert monitor.cpu.detail_label.text() == "4.20GHz"
+    assert monitor.cpu.label.text() == "CPU 37% 4.20GHz"
 
 
 def test_update_disk_updates_disk_card(monkeypatch, qapp):
@@ -58,7 +61,7 @@ def test_update_disk_updates_disk_card(monkeypatch, qapp):
     assert len(monitor.disk_rows) == 2
     first = monitor.disk_rows[0][1]
     second = monitor.disk_rows[1][1]
-    assert "Disk" in first.label.text()
+    assert first.title_label.text()
     assert "61%" in first.label.text()
     assert "42%" in second.label.text()
 
@@ -71,3 +74,28 @@ def test_tray_menu_has_no_trend_toggle(monkeypatch, qapp):
 
     monitor = srm.SystemMonitor()
     assert not hasattr(monitor, "action_trend")
+
+
+def test_update_gpu_moves_name_to_title(monkeypatch, qapp):
+    monkeypatch.setattr(srm.SystemMonitor, "_init_timers", lambda self: None)
+    monkeypatch.setattr(srm.QTimer, "singleShot", staticmethod(lambda *_args, **_kwargs: None))
+    monkeypatch.setattr(srm.SystemMonitor, "_discover_disk_mounts", lambda self: ["/disk1"])
+
+    monitor = srm.SystemMonitor()
+    monitor._gpu_handle = object()
+
+    monkeypatch.setattr(srm, "nvmlDeviceGetUtilizationRates", lambda _h: SimpleNamespace(gpu=41))
+    monkeypatch.setattr(srm, "nvmlDeviceGetTemperature", lambda _h, _k: 63)
+    monkeypatch.setattr(
+        srm,
+        "nvmlDeviceGetMemoryInfo",
+        lambda _h: SimpleNamespace(used=4.1 * 1024**3, total=12.0 * 1024**3),
+    )
+    monkeypatch.setattr(srm, "nvmlDeviceGetName", lambda _h: b"NVIDIA GeForce RTX 4060")
+
+    monitor._update_gpu()
+
+    assert monitor.gpu.title_label.text() == "GPU"
+    assert monitor.gpu.value_label.text() == "41%"
+    assert monitor.gpu.detail_label.text() == "63C 4.1/12.0GB"
+    assert monitor.gpu.toolTip() == "RTX 4060"

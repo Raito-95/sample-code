@@ -1,21 +1,15 @@
-﻿import json
+import json
 import subprocess
 import sys
 from pathlib import Path
 
 import psutil
 from PySide6.QtCore import QPoint, QTimer, Qt
-from PySide6.QtGui import (
-    QAction,
-    QColor,
-    QGuiApplication,
-    QIcon,
-    QMouseEvent,
-    QPixmap,
-)
+from PySide6.QtGui import QAction, QColor, QGuiApplication, QIcon, QMouseEvent, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
+    QHBoxLayout,
     QLabel,
     QMainWindow,
     QMenu,
@@ -43,32 +37,65 @@ except ImportError:
     NVML_AVAILABLE = False
     NVMLError = Exception  # type: ignore[assignment]
 
+LOW_COLOR = "#d2dbec"
+MID_COLOR = "#f6c177"
+HIGH_COLOR = "#ff6b6b"
+
 
 class MetricRow(QFrame):
-    def __init__(
-        self,
-        parent: QWidget,
-        title: str,
-        detail: str,
-    ) -> None:
+    def __init__(self, parent: QWidget, title: str, value: str = "--", detail: str = "--") -> None:
         super().__init__(parent)
         self.setObjectName("metricRow")
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 5, 8, 5)
-        layout.setSpacing(1)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(10, 6, 10, 6)
+        layout.setSpacing(6)
 
         self.title_label = QLabel(title, self)
         self.title_label.setObjectName("metricTitle")
+        self.title_label.setFixedWidth(44)
+
+        self.value_label = QLabel(value, self)
+        self.value_label.setObjectName("metricValue")
+        self.value_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.value_label.setFixedWidth(42)
+
         self.detail_label = QLabel(detail, self)
         self.detail_label.setObjectName("metricDetail")
-        self.detail_label.setWordWrap(True)
+        self.detail_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.detail_label.setMinimumWidth(80)
+
+        self.label = QLabel(self)
+        self.label.hide()
 
         layout.addWidget(self.title_label)
+        layout.addStretch()
+        layout.addWidget(self.value_label)
         layout.addWidget(self.detail_label)
+        self._sync_label()
+
+    def set_metric(self, value: str, detail: str, tone: str) -> None:
+        self.value_label.setText(value)
+        self.value_label.setStyleSheet(f"color: {tone};")
+        self.detail_label.setText(detail)
+        self._sync_label()
+
+    def set_title(self, title: str) -> None:
+        self.title_label.setText(title)
+        self._sync_label()
+
+    def set_tooltip(self, text: str) -> None:
+        self.setToolTip(text)
+        self.title_label.setToolTip(text)
+        self.detail_label.setToolTip(text)
+        self.value_label.setToolTip(text)
 
     def set_detail(self, detail: str) -> None:
-        self.detail_label.setText(detail)
+        self.set_metric(detail, "", LOW_COLOR)
+
+    def _sync_label(self) -> None:
+        parts = [self.title_label.text().rstrip(":"), self.value_label.text(), self.detail_label.text()]
+        self.label.setText(" ".join(part for part in parts if part))
 
 
 class SystemMonitor(QMainWindow):
@@ -90,18 +117,19 @@ class SystemMonitor(QMainWindow):
         self.setCentralWidget(root)
 
         self._metrics_layout = QVBoxLayout(root)
-        self._metrics_layout.setContentsMargins(5, 5, 5, 5)
-        self._metrics_layout.setSpacing(3)
+        self._metrics_layout.setContentsMargins(6, 6, 6, 6)
+        self._metrics_layout.setSpacing(4)
 
-        self.cpu = MetricRow(root, "CPU", "--%")
-        self.mem = MetricRow(root, "Memory", "--%")
-        self.gpu = MetricRow(root, "GPU", "--")
+        self.cpu = MetricRow(root, "CPU", "--%", "--")
+        self.mem = MetricRow(root, "RAM", "--%", "--")
+        self.gpu = MetricRow(root, "GPU", "--", "--")
+        self._gpu_base_title = "GPU"
         self.disk_rows: list[tuple[str, MetricRow]] = []
         for mount in self._disk_mounts:
             short = self._short_mount_label(mount)
             kind = self._disk_types.get(short, "")
-            title = f"Disk {short}" if not kind else f"Disk {short} ({kind})"
-            row = MetricRow(root, title, "--%")
+            title = short if not kind else f"{short} {kind}"
+            row = MetricRow(root, title, "--%", "--")
             self.disk_rows.append((mount, row))
 
         self._metrics_layout.addWidget(self.cpu)
@@ -113,24 +141,31 @@ class SystemMonitor(QMainWindow):
         root.setStyleSheet(
             """
             QWidget#root {
-                background-color: rgba(15, 20, 29, 210);
+                background-color: rgba(15, 20, 29, 182);
                 border: 1px solid rgba(255, 255, 255, 42);
-                border-radius: 12px;
+                border-radius: 14px;
             }
             QFrame#metricRow {
-                background-color: rgba(255, 255, 255, 6);
+                background-color: rgba(255, 255, 255, 4);
                 border: 1px solid rgba(255, 255, 255, 16);
-                border-radius: 7px;
+                border-radius: 8px;
             }
             QLabel#metricTitle {
                 color: #eef2ff;
+                font-size: 11px;
+                font-weight: 800;
+            }
+            QLabel#metricValue {
+                color: #d2dbec;
                 font-size: 12px;
-                font-weight: 700;
+                font-weight: 800;
+                min-width: 42px;
             }
             QLabel#metricDetail {
-                color: #d2dbec;
-                font-size: 11px;
-                font-weight: 500;
+                color: #9fb0cc;
+                font-size: 10px;
+                font-weight: 700;
+                min-width: 80px;
             }
             """
         )
@@ -139,7 +174,7 @@ class SystemMonitor(QMainWindow):
         self._apply_gpu_visibility()
         self._init_timers()
         self._init_tray()
-        self.resize(200, 220)
+        self.resize(220, 220)
         self._adjust_compact_width()
         QTimer.singleShot(100, self._move_to_bottom_right)
 
@@ -199,7 +234,7 @@ class SystemMonitor(QMainWindow):
 
         margins = self._metrics_layout.contentsMargins()
         spacing = self._metrics_layout.spacing() * max(0, len(rows) - 1)
-        target_width = min(210, max(180, max(row.sizeHint().width() for row in rows) + margins.left() + margins.right()))
+        target_width = min(280, max(200, max(row.sizeHint().width() for row in rows) + margins.left() + margins.right()))
         target_height = (
             sum(row.sizeHint().height() for row in rows)
             + spacing
@@ -269,8 +304,7 @@ class SystemMonitor(QMainWindow):
         self.adjustSize()
 
     def _apply_gpu_visibility(self) -> None:
-        has_gpu = self._gpu_handle is not None
-        self.gpu.setVisible(has_gpu)
+        self.gpu.setVisible(self._gpu_handle is not None)
 
     @staticmethod
     def _format_gpu_name(raw_name: str) -> str:
@@ -280,6 +314,14 @@ class SystemMonitor(QMainWindow):
                 cleaned = cleaned[len(prefix) :].strip()
                 break
         return cleaned or raw_name
+
+    @staticmethod
+    def _usage_color(percent: float) -> str:
+        if percent >= 85:
+            return HIGH_COLOR
+        if percent >= 60:
+            return MID_COLOR
+        return LOW_COLOR
 
     @staticmethod
     def _short_mount_label(mount: str) -> str:
@@ -353,26 +395,30 @@ class SystemMonitor(QMainWindow):
         usage = psutil.cpu_percent()
         freq = psutil.cpu_freq()
         freq_text = f"{freq.current / 1000:.2f}GHz" if freq else "N/A"
-        self.cpu.set_detail(f"{usage:.0f}% {freq_text}")
+        self.cpu.set_metric(f"{usage:.0f}%", freq_text, self._usage_color(usage))
         self._adjust_compact_width()
 
     def _update_memory(self) -> None:
         mem = psutil.virtual_memory()
-        self.mem.set_detail(f"{mem.used / 1024**3:.1f}/{mem.total / 1024**3:.1f} GB {mem.percent:.0f}%")
+        detail = f"{mem.used / 1024**3:.1f}/{mem.total / 1024**3:.1f}GB"
+        self.mem.set_metric(f"{mem.percent:.0f}%", detail, self._usage_color(mem.percent))
         self._adjust_compact_width()
 
     def _update_disk(self) -> None:
         for mount, row in self.disk_rows:
             try:
                 disk = psutil.disk_usage(mount)
-                row.set_detail(f"{disk.used / 1024**3:.0f}/{disk.total / 1024**3:.0f} GB {disk.percent:.0f}%")
+                detail = f"{disk.used / 1024**3:.0f}/{disk.total / 1024**3:.0f}GB"
+                row.set_metric(f"{disk.percent:.0f}%", detail, self._usage_color(disk.percent))
             except Exception:
-                row.set_detail("unavailable")
+                row.set_metric("--", "unavailable", HIGH_COLOR)
         self._adjust_compact_width()
 
     def _update_gpu(self) -> None:
         if not self._gpu_handle:
-            self.gpu.set_detail("unavailable")
+            self.gpu.set_title(self._gpu_base_title)
+            self.gpu.set_tooltip("")
+            self.gpu.set_metric("--", "unavailable", HIGH_COLOR)
             self._adjust_compact_width()
             return
 
@@ -384,15 +430,20 @@ class SystemMonitor(QMainWindow):
             if isinstance(name, bytes):
                 name = name.decode("utf-8", errors="ignore")
             pretty_name = self._format_gpu_name(str(name))
-            self.gpu.set_detail(
-                f"{pretty_name}\n{util.gpu:.0f}% {temp}C VRAM {mem.used / 1024**2:.0f}/{mem.total / 1024**2:.0f}MB"
-            )
+            self.gpu.set_title(self._gpu_base_title)
+            self.gpu.set_tooltip(pretty_name)
+            detail = f"{temp}C {mem.used / 1024**3:.1f}/{mem.total / 1024**3:.1f}GB"
+            self.gpu.set_metric(f"{util.gpu:.0f}%", detail, self._usage_color(float(util.gpu)))
             self._adjust_compact_width()
         except NVMLError:
-            self.gpu.set_detail("read error")
+            self.gpu.set_title(self._gpu_base_title)
+            self.gpu.set_tooltip("")
+            self.gpu.set_metric("--", "read error", HIGH_COLOR)
             self._adjust_compact_width()
         except Exception:
-            self.gpu.set_detail("read error")
+            self.gpu.set_title(self._gpu_base_title)
+            self.gpu.set_tooltip("")
+            self.gpu.set_metric("--", "read error", HIGH_COLOR)
             self._adjust_compact_width()
 
     def _move_to_bottom_right(self) -> None:
@@ -436,4 +487,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
