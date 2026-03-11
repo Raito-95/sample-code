@@ -1,6 +1,6 @@
 # Runtime dependencies for retained apps:
 # - apps/system_resource_monitor.py
-# - apps/crypto_price_ticker.py
+# - apps/market_index_ticker.py
 
 PySide6==6.10.0
 psutil==7.1.1

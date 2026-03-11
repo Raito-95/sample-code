@@ -25,7 +25,7 @@ uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/ --c
 
 ```bash
 uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/test_system_resource_monitor.py -q
-uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/test_crypto_price_ticker.py -q
+uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/test_market_index_ticker.py -q
 uv run --python 3.10 --with-requirements requirements-test.txt pytest tests/test_grade_system.py -q
 ```
 

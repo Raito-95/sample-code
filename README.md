@@ -5,7 +5,7 @@
 此 repo 目前聚焦三個可維護工具與一組基礎演算法/資料結構範例：
 
 - `apps/system_resource_monitor.py`
-- `apps/crypto_price_ticker.py`
+- `apps/market_index_ticker.py`
 - `apps/algorithms_lab/student_grade_manager.py`
 - `core/algorithms`
 - `core/data_structures`
@@ -55,7 +55,7 @@ uv pip install -r requirements-test.txt
 
 ```bash
 uv run --python 3.10 --with-requirements requirements.txt python apps/system_resource_monitor.py
-uv run --python 3.10 --with-requirements requirements.txt python apps/crypto_price_ticker.py
+uv run --python 3.10 --with-requirements requirements.txt python apps/market_index_ticker.py
 uv run --python 3.10 --with-requirements requirements.txt python apps/algorithms_lab/student_grade_manager.py
 ```
 

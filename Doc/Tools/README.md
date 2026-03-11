@@ -6,7 +6,7 @@
 
 ## 內容清單
 
-- `crypto_price_ticker.md`：對應 `apps/crypto_price_ticker.py`
+- `market_index_ticker.md`：對應 `apps/market_index_ticker.py`
 - `system_resource_monitor.md`：對應 `apps/system_resource_monitor.py`
 - `student_grade_manager.md`：對應 `apps/algorithms_lab/student_grade_manager.py`
 
