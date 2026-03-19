@@ -104,6 +104,54 @@ def test_build_index_payload_uses_market_hours_fallback(monkeypatch):
     }
 
 
+def test_build_index_payload_hides_stale_financialcontent_quote_on_holiday(monkeypatch):
+    monkeypatch.setattr(
+        MarketPriceFeed,
+        "_is_within_market_hours",
+        staticmethod(lambda symbol, current_ts: True),
+    )
+    payload = MarketPriceFeed._build_index_payload(
+        "^DJI",
+        """
+        <div>Price 42,000.00</div>
+        <div>Prev. Close 41,850.00</div>
+        <div>Daily Price Updated: 5:22 PM EST, Jan 16, 2026</div>
+        """,
+        1_737_313_200,
+    )
+
+    assert payload == {
+        "price": 42000.0,
+        "reference": 41850.0,
+        "change": 150.0,
+        "visible": False,
+    }
+
+
+def test_build_index_payload_keeps_current_financialcontent_quote_visible(monkeypatch):
+    monkeypatch.setattr(
+        MarketPriceFeed,
+        "_is_within_market_hours",
+        staticmethod(lambda symbol, current_ts: True),
+    )
+    payload = MarketPriceFeed._build_index_payload(
+        "^DJI",
+        """
+        <div>Price 42,000.00</div>
+        <div>Prev. Close 41,850.00</div>
+        <div>Daily Price Updated: 10:05 AM EDT, Mar 17, 2026</div>
+        """,
+        1_773_756_300,
+    )
+
+    assert payload == {
+        "price": 42000.0,
+        "reference": 41850.0,
+        "change": 150.0,
+        "visible": True,
+    }
+
+
 def test_parse_financialcontent_quote():
     price, previous_close = MarketPriceFeed._parse_financialcontent_quote(
         "<div>Price 42,000.00</div><div>Prev. Close 41,850.00</div>"
@@ -173,5 +221,92 @@ def test_widget_hides_closed_markets_and_renders_change(qapp):
     widget.feed.timer.stop()
     widget.feed.retry_timer.stop()
     widget.feed.ws.abort()
+    widget.tray.hide()
+    widget.close()
+
+
+def test_widget_shrinks_when_only_btc_remains_visible(qapp, monkeypatch):
+    monkeypatch.setattr(MarketPriceFeed, "start", lambda self: None)
+    widget = MarketTickerWidget(qapp)
+    widget.show()
+    qapp.processEvents()
+
+    widget._on_prices_changed(
+        {
+            "BTC-USD": {
+                "price": 100000.0,
+                "reference": 98000.0,
+                "change": 2000.0,
+                "visible": True,
+            },
+            "^DJI": {
+                "price": 42000.0,
+                "reference": 41850.0,
+                "change": 150.0,
+                "visible": True,
+            },
+            "^GSPC": {
+                "price": 5300.0,
+                "reference": 5320.0,
+                "change": -20.0,
+                "visible": False,
+            },
+            "^IXIC": {
+                "price": 17000.0,
+                "reference": 17010.0,
+                "change": -10.0,
+                "visible": False,
+            },
+            "^TWII": {
+                "price": 22000.0,
+                "reference": 21850.0,
+                "change": 150.0,
+                "visible": True,
+            },
+        }
+    )
+    qapp.processEvents()
+    multi_item_size = widget.size()
+
+    widget._on_prices_changed(
+        {
+            "BTC-USD": {
+                "price": 100000.0,
+                "reference": 98000.0,
+                "change": 2000.0,
+                "visible": True,
+            },
+            "^DJI": {
+                "price": 42000.0,
+                "reference": 41850.0,
+                "change": 150.0,
+                "visible": False,
+            },
+            "^GSPC": {
+                "price": 5300.0,
+                "reference": 5320.0,
+                "change": -20.0,
+                "visible": False,
+            },
+            "^IXIC": {
+                "price": 17000.0,
+                "reference": 17010.0,
+                "change": -10.0,
+                "visible": False,
+            },
+            "^TWII": {
+                "price": 22000.0,
+                "reference": 21850.0,
+                "change": 150.0,
+                "visible": False,
+            },
+        }
+    )
+    qapp.processEvents()
+    btc_only_size = widget.size()
+
+    assert btc_only_size.height() < multi_item_size.height()
+    assert btc_only_size.width() <= multi_item_size.width()
+
     widget.tray.hide()
     widget.close()

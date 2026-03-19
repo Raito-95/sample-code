@@ -227,15 +227,17 @@ class MarketPriceFeed(QObject):
         config = TICKERS[symbol]
         if config["source"] == "financialcontent":
             price, reference = MarketPriceFeed._parse_financialcontent_quote(raw_text)
+            has_current_quote = MarketPriceFeed._has_current_financialcontent_quote(raw_text, now_ts)
         elif config["source"] == "taiwanindex":
             price, reference = MarketPriceFeed._parse_taiwanindex_quote(raw_text)
+            has_current_quote = True
         else:
             return {"price": 0.0, "reference": 0.0, "change": 0.0, "visible": False}
 
         if price <= 0 or reference <= 0:
             return {"price": 0.0, "reference": 0.0, "change": 0.0, "visible": False}
 
-        visible = MarketPriceFeed._is_within_market_hours(symbol, now_ts)
+        visible = has_current_quote and MarketPriceFeed._is_within_market_hours(symbol, now_ts)
         return {
             "price": price,
             "reference": reference,
@@ -254,6 +256,25 @@ class MarketPriceFeed(QObject):
             float(price_match.group(1).replace(",", "")),
             float(prev_close_match.group(1).replace(",", "")),
         )
+
+    @staticmethod
+    def _has_current_financialcontent_quote(raw_text: str, now_ts: int) -> bool:
+        market_date = MarketPriceFeed._market_local_datetime("us", now_ts).date()
+        quote_date = MarketPriceFeed._parse_financialcontent_quote_date(raw_text)
+        if quote_date is None:
+            return True
+        return quote_date == market_date
+
+    @staticmethod
+    def _parse_financialcontent_quote_date(raw_text: str):
+        text = MarketPriceFeed._normalize_text(raw_text)
+        match = re.search(
+            r"Daily Price Updated:\s+\d{1,2}:\d{2}\s+[AP]M\s+(?:EST|EDT),\s+([A-Za-z]{3}\s+\d{1,2},\s+\d{4})",
+            text,
+        )
+        if not match:
+            return None
+        return datetime.strptime(match.group(1), "%b %d, %Y").date()
 
     @staticmethod
     def _parse_taiwanindex_quote(raw_text: str) -> tuple[float, float]:
@@ -283,8 +304,7 @@ class MarketPriceFeed(QObject):
         if not schedule:
             return False
 
-        offset_hours = MarketPriceFeed._market_utc_offset_hours(schedule["market"], now_ts)
-        now = datetime.fromtimestamp(now_ts, tz=timezone.utc) + timedelta(hours=offset_hours)
+        now = MarketPriceFeed._market_local_datetime(schedule["market"], now_ts)
         if now.weekday() >= 5:
             return False
 
@@ -300,6 +320,11 @@ class MarketPriceFeed(QObject):
         if market == "us":
             return -4 if MarketPriceFeed._is_us_dst(now_ts) else -5
         return 0
+
+    @staticmethod
+    def _market_local_datetime(market: str, now_ts: int) -> datetime:
+        offset_hours = MarketPriceFeed._market_utc_offset_hours(market, now_ts)
+        return datetime.fromtimestamp(now_ts, tz=timezone.utc) + timedelta(hours=offset_hours)
 
     @staticmethod
     def _is_us_dst(now_ts: int) -> bool:
@@ -510,6 +535,7 @@ class MarketTickerWidget(QWidget):
 
     def _on_status_changed(self, status: str) -> None:
         self.status.setText(status.upper())
+        self._refresh_compact_size()
 
     def _on_prices_changed(self, prices: dict) -> None:
         visible_symbols: list[str] = []
@@ -537,8 +563,19 @@ class MarketTickerWidget(QWidget):
         current_visible = tuple(visible_symbols)
         if current_visible != self._last_visible_symbols:
             self._last_visible_symbols = current_visible
-            self.adjustSize()
+            self._refresh_compact_size()
             self.move_to_bottom_right()
+
+    def _refresh_compact_size(self) -> None:
+        container_layout = self.container.layout()
+        root_layout = self.layout()
+        if container_layout is not None:
+            container_layout.activate()
+        if root_layout is not None:
+            root_layout.activate()
+        self.container.adjustSize()
+        self.adjustSize()
+        self.resize(self.sizeHint())
 
     def toggle_visibility(self) -> None:
         if self.isVisible():
