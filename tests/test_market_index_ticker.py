@@ -171,6 +171,22 @@ def test_parse_taiwanindex_quote():
     assert previous_close == 21850.0
 
 
+def test_parse_taiwanindex_quote_detail_card_format():
+    price, previous_close = MarketPriceFeed._parse_taiwanindex_quote(
+        """
+        <div>Taiwan Stock Exchange Capitalization Weighted Stock Index</div>
+        <div>Newest Index：</div>
+        <div>33,429.93</div>
+        <div>Change：</div>
+        <div>-259</div>
+        <div>%Change：</div>
+        <div>0%</div>
+        """
+    )
+    assert price == 33429.93
+    assert previous_close == 33688.93
+
+
 def test_widget_hides_closed_markets_and_renders_change(qapp):
     widget = MarketTickerWidget(qapp)
 

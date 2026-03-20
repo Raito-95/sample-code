@@ -279,11 +279,17 @@ class MarketPriceFeed(QObject):
     @staticmethod
     def _parse_taiwanindex_quote(raw_text: str) -> tuple[float, float]:
         text = MarketPriceFeed._normalize_text(raw_text)
-        pattern = (
+        summary_pattern = (
             re.escape(TAIWAN_INDEX_NAME)
             + r"\s+([0-9,]+(?:\.[0-9]+)?)\s+([+-]?[0-9,]+(?:\.[0-9]+)?)\s+([+-]?[0-9]+(?:\.[0-9]+)?)%"
         )
-        match = re.search(pattern, text)
+        match = re.search(summary_pattern, text)
+        if not match:
+            detail_pattern = (
+                re.escape(TAIWAN_INDEX_NAME)
+                + r"\s+Newest Index[:：]?\s*([0-9,]+(?:\.[0-9]+)?)\s+Change[:：]?\s*([+-]?[0-9,]+(?:\.[0-9]+)?)\s+%Change[:：]?\s*([+-]?[0-9]+(?:\.[0-9]+)?)%"
+            )
+            match = re.search(detail_pattern, text)
         if not match:
             raise ValueError("taiwanindex quote fields missing")
         price = float(match.group(1).replace(",", ""))
