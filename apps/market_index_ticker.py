@@ -62,6 +62,7 @@ MARKET_SCHEDULES = {
 TAIWAN_INDEX_NAME = "Taiwan Stock Exchange Capitalization Weighted Stock Index"
 INDEX_SYMBOLS = [symbol for symbol, config in TICKERS.items() if config["source"] != "binance"]
 BINANCE_STREAM = "wss://stream.binance.com:9443/ws/btcusdt@ticker"
+INDEX_REQUEST_TIMEOUT_MS = 10000
 
 UP_COLOR = "#7bd88f"
 DOWN_COLOR = "#ff6b6b"
@@ -107,11 +108,13 @@ class MarketPriceFeed(QObject):
             return
 
         self._request_in_flight = True
+        self._index_error = False
         self._pending_symbols = set(INDEX_SYMBOLS)
         for symbol in INDEX_SYMBOLS:
             config = TICKERS[symbol]
             request = QNetworkRequest(QUrl(config["url"]))
             request.setRawHeader(b"User-Agent", b"Mozilla/5.0")
+            request.setTransferTimeout(INDEX_REQUEST_TIMEOUT_MS)
             reply = self.manager.get(request)
             reply.setProperty("symbol", symbol)
 
@@ -176,13 +179,11 @@ class MarketPriceFeed(QObject):
         symbol = str(reply.property("symbol") or "")
         if symbol:
             self._pending_symbols.discard(symbol)
+        self._index_error = self._index_error or had_error
 
-        if self._pending_symbols:
-            reply.deleteLater()
-            return
+        if not self._pending_symbols:
+            self._request_in_flight = False
 
-        self._request_in_flight = False
-        self._index_error = had_error
         self.prices_changed.emit(self._merge_results())
         self._emit_status()
         reply.deleteLater()

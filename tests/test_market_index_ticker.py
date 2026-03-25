@@ -18,6 +18,20 @@ from apps.market_index_ticker import (
 )
 
 
+class _FakeReply:
+    def __init__(self, symbol: str) -> None:
+        self._symbol = symbol
+        self.deleted = False
+
+    def property(self, name: str):
+        if name == "symbol":
+            return self._symbol
+        return None
+
+    def deleteLater(self) -> None:
+        self.deleted = True
+
+
 @pytest.fixture(scope="module")
 def qapp():
     app = QApplication.instance() or QApplication([])
@@ -150,6 +164,47 @@ def test_build_index_payload_keeps_current_financialcontent_quote_visible(monkey
         "change": 150.0,
         "visible": True,
     }
+
+
+def test_finalize_reply_emits_partial_updates_without_waiting_for_all(qapp):
+    feed = MarketPriceFeed()
+    feed._request_in_flight = True
+    feed._pending_symbols = {"^DJI", "^TWII"}
+    feed._results["^TWII"] = {
+        "price": 22000.0,
+        "reference": 21850.0,
+        "change": 150.0,
+        "visible": True,
+    }
+
+    captured = []
+    feed.prices_changed.connect(captured.append)
+
+    reply = _FakeReply("^TWII")
+    feed._finalize_reply(reply, had_error=False)
+
+    assert feed._request_in_flight is True
+    assert feed._pending_symbols == {"^DJI"}
+    assert len(captured) == 1
+    assert captured[0]["^TWII"]["visible"] is True
+    assert reply.deleted is True
+
+
+def test_finalize_reply_keeps_error_state_until_batch_finishes(qapp):
+    feed = MarketPriceFeed()
+    feed._request_in_flight = True
+    feed._pending_symbols = {"^DJI", "^TWII"}
+
+    first_reply = _FakeReply("^DJI")
+    second_reply = _FakeReply("^TWII")
+
+    feed._finalize_reply(first_reply, had_error=True)
+    assert feed._index_error is True
+    assert feed._request_in_flight is True
+
+    feed._finalize_reply(second_reply, had_error=False)
+    assert feed._index_error is True
+    assert feed._request_in_flight is False
 
 
 def test_parse_financialcontent_quote():
