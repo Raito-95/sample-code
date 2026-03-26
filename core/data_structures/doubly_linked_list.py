@@ -74,15 +74,19 @@ class DoublyLinkedList:
         return elements
 
 
-# Usage example
-dll = DoublyLinkedList()
-dll.append(1)
-dll.append(2)
-dll.append(3)
-print("Forward:", dll.display_forward())  # Output: [1, 2, 3]
-print("Backward:", dll.display_backward())  # Output: [3, 2, 1]
+def main():
+    linked_list = DoublyLinkedList()
+    linked_list.append(1)
+    linked_list.append(2)
+    linked_list.append(3)
+    print("Forward:", linked_list.display_forward())
+    print("Backward:", linked_list.display_backward())
 
-node = dll.find(2)
-if node:
-    dll.delete(node)
-print("Forward after deletion:", dll.display_forward())  # Output: [1, 3]
+    node = linked_list.find(2)
+    if node:
+        linked_list.delete(node)
+    print("Forward after deletion:", linked_list.display_forward())
+
+
+if __name__ == "__main__":
+    main()

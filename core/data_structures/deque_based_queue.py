@@ -44,14 +44,17 @@ class Queue:
         return None
 
 
-# Usage example
-queue = Queue()
-queue.enqueue(1)
-queue.enqueue(2)
-queue.enqueue(3)
-print("Front item:", queue.peek())  # Output should be 1
-print("Queue size:", queue.size())  # Output should be 3
-dequeued_item = queue.dequeue()  # Should dequeue 1
-print("Dequeued item:", dequeued_item)
-print("New front item:", queue.peek())  # Output should be 2
-print("New queue size:", queue.size())  # Output should be 2
+def main():
+    queue = Queue()
+    queue.enqueue(1)
+    queue.enqueue(2)
+    queue.enqueue(3)
+    print("Front item:", queue.peek())
+    print("Queue size:", queue.size())
+    print("Dequeued item:", queue.dequeue())
+    print("New front item:", queue.peek())
+    print("New queue size:", queue.size())
+
+
+if __name__ == "__main__":
+    main()

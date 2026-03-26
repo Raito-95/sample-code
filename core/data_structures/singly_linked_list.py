@@ -76,14 +76,18 @@ class SinglyLinkedList:
         return elements
 
 
-# Usage example
-sll = SinglyLinkedList()
-sll.append(1)
-sll.append(2)
-sll.append(3)
-print("Original List:", sll.display())  # Output should be [1, 2, 3]
-sll.delete_node(2)
-print("After Deleting 2:", sll.display())  # Output should be [1, 3]
-print("Search for 3:", sll.search(3))  # Output should be True
-sll.reverse()
-print("Reversed List:", sll.display())  # Output should be [3, 1]
+def main():
+    linked_list = SinglyLinkedList()
+    linked_list.append(1)
+    linked_list.append(2)
+    linked_list.append(3)
+    print("Original List:", linked_list.display())
+    linked_list.delete_node(2)
+    print("After Deleting 2:", linked_list.display())
+    print("Search for 3:", linked_list.search(3))
+    linked_list.reverse()
+    print("Reversed List:", linked_list.display())
+
+
+if __name__ == "__main__":
+    main()

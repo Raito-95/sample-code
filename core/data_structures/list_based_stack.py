@@ -46,13 +46,16 @@ class Stack:
         return list(reversed(self.items))  # Display from top to bottom
 
 
-# Usage example
-stack = Stack()
-stack.push(1)
-stack.push(2)
-stack.push(3)
-print("Current Stack:", stack.display())  # Output should be [3, 2, 1]
-print("Top item:", stack.peek())  # Output should be 3
-popped_item = stack.pop()  # Should pop 3
-print("Popped item:", popped_item)
-print("Stack after pop:", stack.display())  # Output should be [2, 1]
+def main():
+    stack = Stack()
+    stack.push(1)
+    stack.push(2)
+    stack.push(3)
+    print("Current Stack:", stack.display())
+    print("Top item:", stack.peek())
+    print("Popped item:", stack.pop())
+    print("Stack after pop:", stack.display())
+
+
+if __name__ == "__main__":
+    main()
