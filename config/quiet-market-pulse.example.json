@@ -1,0 +1,23 @@
+{
+  "refresh_seconds": 60,
+  "instruments": [
+    {
+      "label": "TWII",
+      "symbol": "^TWII",
+      "source": "twse",
+      "show_when_closed": false
+    },
+    {
+      "label": "BTC",
+      "symbol": "BTCUSDT",
+      "source": "binance",
+      "show_when_closed": true
+    },
+    {
+      "label": "ETH",
+      "symbol": "ETHUSDT",
+      "source": "binance",
+      "show_when_closed": true
+    }
+  ]
+}
